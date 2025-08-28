@@ -22,13 +22,13 @@ export const APP_URL: string = process.env.NEXT_PUBLIC_URL!;
  * The name of the mini app as displayed to users.
  * Used in titles, headers, and app store listings.
  */
-export const APP_NAME: string = 'guess-23-mini';
+export const APP_NAME: string = 'Guess 23 Game';
 
 /**
  * A brief description of the mini app's functionality.
  * Used in app store listings and metadata.
  */
-export const APP_DESCRIPTION: string = 'A Farcaster mini app created with Neynar';
+export const APP_DESCRIPTION: string = 'An exciting guessing game on the Farcaster network';
 
 /**
  * The primary category for the mini app.

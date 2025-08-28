@@ -1,6 +1,6 @@
 // lib/wagmi.ts
 import { createConfig, http } from 'wagmi'
-import { base, baseSepolia, mainnet } from 'wagmi/chains'
+import { base, mainnet } from 'wagmi/chains'
 import { farcasterMiniApp as miniAppConnector } from '@farcaster/miniapp-wagmi-connector'
 import { coinbaseWallet, injected, walletConnect } from 'wagmi/connectors'
 
@@ -31,7 +31,6 @@ export const config = createConfig({
   chains: [CHAIN, mainnet],
   transports: {
     [base.id]: http('https://mainnet.base.org'),
-    [baseSepolia.id]: http('https://sepolia.base.org'), 
     [mainnet.id]: http('https://eth.merkle.io')
   },
   connectors: [

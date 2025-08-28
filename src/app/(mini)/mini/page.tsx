@@ -2,7 +2,7 @@
 import { useMemo, useState } from 'react'
 import { useAccount, useConnect, useReadContract, useWriteContract } from 'wagmi'
 import { formatEther, parseEther } from 'viem'
-import { guess23Abi } from '@/lib/abi'
+import { guess23Abi } from '~/lib/abi'
 
 // Base mainnet contract address
 const CONTRACT = "0x4BbeE9F876ff56832E724DC9a7bD06538C8868D2" as `0x${string}`

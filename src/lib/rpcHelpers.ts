@@ -1,5 +1,5 @@
 // src/lib/rpcHelpers.ts
-import { createPublicClient, http, PublicClient, Abi, Address, BlockTag } from 'viem';
+import { createPublicClient, http, PublicClient, Abi, Address, ContractEventName } from 'viem';
 import { base } from 'viem/chains';
 
 // Alternative RPC endpoints to try if the primary fails
@@ -28,7 +28,7 @@ export async function createFallbackClient(): Promise<PublicClient> {
     // Test the client with a simple call
     await client.getBlockNumber();
     console.log("Using primary RPC endpoint:", RPC_FALLBACKS[0]);
-    return client;
+    return client as PublicClient;
   } catch (error) {
     console.warn("Primary RPC failed, trying fallbacks...", error);
     
@@ -46,7 +46,7 @@ export async function createFallbackClient(): Promise<PublicClient> {
         // Test the fallback
         await fallbackClient.getBlockNumber();
         console.log("Using fallback RPC endpoint:", RPC_FALLBACKS[i]);
-        return fallbackClient;
+        return fallbackClient as PublicClient;
       } catch (innerError) {
         console.warn(`Fallback RPC ${i} failed:`, innerError);
       }
@@ -54,7 +54,7 @@ export async function createFallbackClient(): Promise<PublicClient> {
     
     // If all fallbacks fail, return the original client as last resort
     console.error("All RPC endpoints failed. Using default client.");
-    return client;
+    return client as PublicClient;
   }
 }
 
@@ -72,7 +72,7 @@ export async function getContractEventsWithFallback<TAbi extends Abi>({
   client: PublicClient;
   address: Address;
   abi: TAbi;
-  eventName: string;
+  eventName: ContractEventName<TAbi>;
   fromBlock: bigint;
   toBlock?: 'latest' | bigint;
 }) {
@@ -80,7 +80,7 @@ export async function getContractEventsWithFallback<TAbi extends Abi>({
     return await client.getContractEvents({
       address,
       abi,
-      eventName,
+      eventName: eventName as any,
       fromBlock,
       toBlock,
       strict: false
@@ -105,7 +105,7 @@ export async function getContractEventsWithFallback<TAbi extends Abi>({
       return await fallbackClient.getContractEvents({
         address,
         abi,
-        eventName,
+        eventName: eventName as any,
         fromBlock: startBlock,
         toBlock,
         strict: false

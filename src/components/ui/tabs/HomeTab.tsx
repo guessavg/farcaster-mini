@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useAccount, useContractRead, useContractWrite, useWaitForTransactionReceipt, useBalance, usePublicClient } from "wagmi";
 import { useConnect } from "wagmi";
-import { parseEther, formatEther } from "viem";
+import { formatEther } from "viem";
 import { Button } from "../Button";
 import { Input } from "../input";
 import { Label } from "../label";
@@ -221,7 +221,7 @@ export function HomeTab() {
           const endEvents = await publicClient.getContractEvents({
             address: CONTRACT_ADDRESS as `0x${string}`,
             abi: guess23Abi,
-            eventName: 'GameEnded',
+            eventName: 'GameEnded' as any,
             fromBlock: startBlock,
             toBlock: 'latest',
             strict: false // Make the request more lenient
@@ -248,7 +248,7 @@ export function HomeTab() {
           const joinEvents = await publicClient.getContractEvents({
             address: CONTRACT_ADDRESS as `0x${string}`,
             abi: guess23Abi,
-            eventName: 'PlayerJoined',
+            eventName: 'PlayerJoined' as any,
             fromBlock: startBlock,
             toBlock: 'latest',
             strict: false // Make the request more lenient
@@ -295,7 +295,7 @@ export function HomeTab() {
             const minimalEvents = await publicClient.getContractEvents({
               address: CONTRACT_ADDRESS as `0x${string}`,
               abi: guess23Abi,
-              eventName: 'PlayerJoined',
+              eventName: 'PlayerJoined' as any,
               fromBlock: lastFewBlocks,
               toBlock: 'latest',
               strict: false

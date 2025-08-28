@@ -28,19 +28,19 @@ export function ShareButton({ buttonText, cast, className = '', isLoading = fals
   const [isProcessing, setIsProcessing] = useState(false);
   const [bestFriends, setBestFriends] = useState<{ fid: number; username: string; }[] | null>(null);
   const [isLoadingBestFriends, setIsLoadingBestFriends] = useState(false);
-  const { context, actions } = useMiniApp();
+  const { context: miniAppContext, actions } = useMiniApp();
 
   // Fetch best friends if needed
   useEffect(() => {
-    if (cast.bestFriends && context?.user?.fid) {
+    if (cast.bestFriends && miniAppContext?.user?.fid) {
       setIsLoadingBestFriends(true);
-      fetch(`/api/best-friends?fid=${context.user.fid}`)
+      fetch(`/api/best-friends?fid=${miniAppContext.user.fid}`)
         .then(res => res.json())
         .then(data => setBestFriends(data.bestFriends))
         .catch(err => console.error('Failed to fetch best friends:', err))
         .finally(() => setIsLoadingBestFriends(false));
     }
-  }, [cast.bestFriends, context?.user?.fid]);
+  }, [cast.bestFriends, miniAppContext?.user?.fid]);
 
   const handleShare = useCallback(async () => {
     try {
@@ -77,7 +77,7 @@ export function ShareButton({ buttonText, cast, className = '', isLoading = fals
             const url = new URL(`${baseUrl}${embed.path}`);
 
             // Add UTM parameters
-            url.searchParams.set('utm_source', `share-cast-${context?.user?.fid || 'unknown'}`);
+            url.searchParams.set('utm_source', `share-cast-${miniAppContext?.user?.fid || 'unknown'}`);
 
             // If custom image generator is provided, use it
             if (embed.imageUrl) {
@@ -104,7 +104,7 @@ export function ShareButton({ buttonText, cast, className = '', isLoading = fals
     } finally {
       setIsProcessing(false);
     }
-  }, [cast, bestFriends, context?.user?.fid, actions]);
+  }, [cast, bestFriends, miniAppContext?.user?.fid, actions]);
 
   return (
     <Button

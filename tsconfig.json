@@ -29,6 +29,6 @@
       "moduleResolution": "node"
     }
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
-  "exclude": ["node_modules"]
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", "hardhat.d.ts"],
+  "exclude": ["node_modules", "hardhat.config.ts", "contracts/**/*", "scripts/deploy-contract.js", "scripts/deploy.ts"]
 }

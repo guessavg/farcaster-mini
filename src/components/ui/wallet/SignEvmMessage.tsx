@@ -4,7 +4,7 @@ import { useCallback } from "react";
 import { useAccount, useConnect, useSignMessage } from "wagmi";
 import { base } from "wagmi/chains";
 import { Button } from "../Button";
-import { config } from "../../providers/WagmiProvider";
+import { config } from "../../../lib/wagmi";
 import { APP_NAME } from "../../../lib/constants";
 import { renderError } from "../../../lib/errorUtils";
 

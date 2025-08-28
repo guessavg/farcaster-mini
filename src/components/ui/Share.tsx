@@ -117,3 +117,39 @@ export function ShareButton({ buttonText, cast, className = '', isLoading = fals
     </Button>
   );
 }
+
+// Simple Share component for general sharing
+interface ShareProps {
+  text: string;
+  url?: string;
+}
+
+export function Share({ text, url = APP_URL }: ShareProps) {
+  const { context, actions } = useMiniApp();
+  const [isSharing, setIsSharing] = useState(false);
+
+  const handleShare = useCallback(async () => {
+    try {
+      setIsSharing(true);
+      
+      await actions.composeCast({
+        text,
+        embeds: url ? [url] : undefined,
+      });
+    } catch (error) {
+      console.error("Error sharing:", error);
+    } finally {
+      setIsSharing(false);
+    }
+  }, [text, url, actions]);
+
+  return (
+    <Button 
+      onClick={handleShare} 
+      className="w-full"
+      isLoading={isSharing}
+    >
+      Share with Friends
+    </Button>
+  );
+}

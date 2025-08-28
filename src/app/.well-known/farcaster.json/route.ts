@@ -1,12 +1,21 @@
-import { NextResponse } from 'next/server';
-import { getFarcasterDomainManifest } from '~/lib/utils';
+import { NextResponse } from 'next/server'
+import { APP_NAME, APP_URL, APP_ICON_URL, APP_SPLASH_URL, APP_SPLASH_BACKGROUND_COLOR, APP_PRIMARY_CATEGORY, APP_TAGS } from '~/lib/constants'
 
 export async function GET() {
-  try {
-    const config = await getFarcasterDomainManifest();
-    return NextResponse.json(config);
-  } catch (error) {
-    console.error('Error generating metadata:', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
+  return NextResponse.json({
+    miniapp: {
+      version: '1',
+      name: APP_NAME,
+      iconUrl: APP_ICON_URL,
+      splashImageUrl: APP_SPLASH_URL,
+      splashBackgroundColor: APP_SPLASH_BACKGROUND_COLOR,
+      homeUrl: APP_URL,
+      requiredChains: ['eip155:8453'], // Base
+      requiredCapabilities: [
+        'wallet.getEthereumProvider'
+      ],
+      primaryCategory: APP_PRIMARY_CATEGORY,
+      tags: APP_TAGS
+    },
+  })
 }

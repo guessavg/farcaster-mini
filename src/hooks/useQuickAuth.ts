@@ -3,6 +3,21 @@
 import { useState, useEffect, useCallback } from 'react';
 import { sdk } from '@farcaster/miniapp-sdk';
 
+// Detect if running in a Farcaster environment
+const isFarcasterEnvironment = typeof window !== 'undefined' && 
+  (window.parent !== window || // iframe
+   navigator.userAgent.includes('Warpcast') || // Warpcast app
+   window.location.href.includes('?embedded=true')); // embedded parameter
+
+// Safe access to SDK
+const getSdk = () => {
+  if (typeof sdk === 'undefined') {
+    console.error('Farcaster SDK is not defined');
+    return null;
+  }
+  return sdk;
+};
+
 /**
  * Represents the current authenticated user state
  */
@@ -103,25 +118,49 @@ export function useQuickAuth(): UseQuickAuthReturn {
   useEffect(() => {
     const checkExistingAuthentication = async () => {
       try {
-        // Attempt to retrieve existing token from QuickAuth SDK
-        const { token } = await sdk.quickAuth.getToken();
+        // Set initial state to loading
+        setStatus('loading');
 
-        if (token) {
+        // If not in Farcaster environment, allow graceful degradation
+        if (!isFarcasterEnvironment) {
+          console.warn('Not running in a Farcaster environment, authentication may be limited');
+        }
+
+        // Safely access SDK
+        const currentSdk = getSdk();
+        if (!currentSdk || !currentSdk.quickAuth) {
+          console.warn('QuickAuth is not available, skipping auto-authentication');
+          setStatus('unauthenticated');
+          return;
+        }
+
+        try {
+          // Attempt to retrieve existing token from QuickAuth SDK
+          const response = await currentSdk.quickAuth.getToken();
+          
+          // Handle case where response or response.token might be undefined
+          if (!response || !response.token) {
+            console.warn('No existing QuickAuth token found');
+            setStatus('unauthenticated');
+            return;
+          }
+
           // Validate the token with our server-side API
-          const validatedUserSession = await validateTokenWithServer(token);
+          const validatedUserSession = await validateTokenWithServer(response.token);
 
           if (validatedUserSession) {
             // Token is valid, set authenticated state
             setAuthenticatedUser(validatedUserSession);
             setStatus('authenticated');
-          } else {
-            // Token is invalid or expired, clear authentication state
-            setStatus('unauthenticated');
+            return;
           }
-        } else {
-          // No existing token found, user is not authenticated
-          setStatus('unauthenticated');
+        } catch (sdkError) {
+          console.warn('Error accessing QuickAuth:', sdkError);
+          // Continue to the failure case below
         }
+
+        // Authentication failed or token invalid
+        setStatus('unauthenticated');
       } catch (error) {
         console.error('Error checking existing authentication:', error);
         setStatus('unauthenticated');
@@ -144,12 +183,32 @@ export function useQuickAuth(): UseQuickAuthReturn {
     try {
       setStatus('loading');
 
-      // Get QuickAuth session token
-      const { token } = await sdk.quickAuth.getToken();
+      // If not in Farcaster environment, show warning but allow to proceed
+      if (!isFarcasterEnvironment) {
+        console.warn('Not running in a Farcaster environment, authentication may be limited');
+      }
 
-      if (token) {
+      // Safely access SDK
+      const currentSdk = getSdk();
+      if (!currentSdk || !currentSdk.quickAuth) {
+        console.error('QuickAuth is not available');
+        setStatus('unauthenticated');
+        return false;
+      }
+
+      try {
+        // Get QuickAuth session token with safer access
+        const response = await currentSdk.quickAuth.getToken();
+        
+        // Handle case where response or response.token might be undefined
+        if (!response || !response.token) {
+          console.warn('QuickAuth token is undefined or empty');
+          setStatus('unauthenticated');
+          return false;
+        }
+
         // Validate the token with our server-side API
-        const validatedUserSession = await validateTokenWithServer(token);
+        const validatedUserSession = await validateTokenWithServer(response.token);
 
         if (validatedUserSession) {
           // Authentication successful, update user state
@@ -157,6 +216,9 @@ export function useQuickAuth(): UseQuickAuthReturn {
           setStatus('authenticated');
           return true;
         }
+      } catch (sdkError) {
+        console.error('SDK error during authentication:', sdkError);
+        // Continue to the failure case below
       }
 
       // Authentication failed, clear user state
@@ -189,9 +251,31 @@ export function useQuickAuth(): UseQuickAuthReturn {
    */
   const getToken = useCallback(async (): Promise<string | null> => {
     try {
-      const { token } = await sdk.quickAuth.getToken();
-      return token;
+      // Safely access SDK
+      const currentSdk = getSdk();
+      if (!currentSdk || !currentSdk.quickAuth) {
+        console.warn('QuickAuth is not available');
+        return null;
+      }
+      
+      try {
+        // Get token with error handling
+        const response = await currentSdk.quickAuth.getToken();
+        
+        // Handle case where response or response.token might be undefined
+        if (!response || !response.token) {
+          console.warn('QuickAuth token is undefined or empty');
+          return null;
+        }
+        
+        return response.token;
+      } catch (sdkError) {
+        // Specific SDK error handling
+        console.warn('Error accessing QuickAuth token:', sdkError);
+        return null;
+      }
     } catch (error) {
+      // General error handling
       console.error('Failed to retrieve authentication token:', error);
       return null;
     }

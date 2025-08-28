@@ -1,12 +1,19 @@
-import { createConfig, http, WagmiProvider } from "wagmi";
-import { base, degen, mainnet, optimism, unichain, celo } from "wagmi/chains";
+import { WagmiProvider } from "wagmi";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { farcasterFrame } from "@farcaster/miniapp-wagmi-connector";
-import { coinbaseWallet, metaMask } from 'wagmi/connectors';
-import { APP_NAME, APP_ICON_URL, APP_URL } from "~/lib/constants";
 import { useEffect, useState } from "react";
 import { useConnect, useAccount } from "wagmi";
 import React from "react";
+
+// Add ethereum to the window object type
+declare global {
+  interface Window {
+    ethereum?: {
+      isCoinbaseWallet?: boolean;
+      isCoinbaseWalletExtension?: boolean;
+      isCoinbaseWalletBrowser?: boolean;
+    };
+  }
+}
 
 // Custom hook for Coinbase Wallet detection and auto-connection
 function useCoinbaseWalletAutoConnect() {
@@ -41,31 +48,11 @@ function useCoinbaseWalletAutoConnect() {
   return isCoinbaseWallet;
 }
 
-export const config = createConfig({
-  chains: [base, optimism, mainnet, degen, unichain, celo],
-  transports: {
-    [base.id]: http(),
-    [optimism.id]: http(),
-    [mainnet.id]: http(),
-    [degen.id]: http(),
-    [unichain.id]: http(),
-    [celo.id]: http(),
-  },
-  connectors: [
-    farcasterFrame(),
-    coinbaseWallet({
-      appName: APP_NAME,
-      appLogoUrl: APP_ICON_URL,
-      preference: 'all',
-    }),
-    metaMask({
-      dappMetadata: {
-        name: APP_NAME,
-        url: APP_URL,
-      },
-    }),
-  ],
-});
+// Import config from our wagmi.ts file
+import { config as miniAppConfig } from '~/lib/wagmi';
+
+// Use our miniAppConfig for Farcaster Mini App
+export const config = miniAppConfig;
 
 const queryClient = new QueryClient();
 

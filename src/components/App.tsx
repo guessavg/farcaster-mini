@@ -90,11 +90,24 @@ export default function App(
         paddingLeft: context?.client.safeAreaInsets?.left ?? 0,
         paddingRight: context?.client.safeAreaInsets?.right ?? 0,
       }}
+      className="min-h-screen bg-gradient-to-b from-gray-900 to-secondary relative overflow-hidden"
     >
+      {/* Decorative cyberpunk elements */}
+      <div className="absolute inset-0 overflow-hidden z-0">
+        <div className="absolute top-0 left-0 w-full h-64 bg-purple-900/10 blur-3xl"></div>
+        <div className="absolute bottom-0 right-0 w-64 h-64 bg-blue-900/10 rounded-full blur-3xl"></div>
+        <div className="absolute top-1/2 left-1/3 w-32 h-32 bg-purple-700/5 rounded-full blur-xl"></div>
+        <div className="grid grid-cols-8 gap-4 absolute inset-0 opacity-10">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <div key={i} className="h-full w-[1px] bg-gradient-to-b from-transparent via-purple-500/20 to-transparent"></div>
+          ))}
+        </div>
+      </div>
+      
       {/* Main content should be centered */}
-      <div className="container py-4 pb-8">
+      <div className="container py-4 pb-8 relative z-10">
         {/* Main title */}
-        <h1 className="text-3xl font-bold text-center mb-6">Guess 2/3 Game</h1>
+        <h1 className="text-3xl font-bold text-center mb-6 bg-clip-text text-transparent bg-gradient-to-r from-purple-300 to-purple-500 drop-shadow-sm">Guess 2/3 Game</h1>
 
         {/* Always render HomeTab */}
         <HomeTab />

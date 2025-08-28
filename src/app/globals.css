@@ -25,19 +25,19 @@
 @tailwind utilities;
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #0f172a; /* Dark blue background */
+  --foreground: #e2e8f0; /* Light gray text */
 }
 
-@media (prefers-color-scheme: dark) {
+@media (prefers-color-scheme: light) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: #0f172a; /* Keep dark theme even in light mode */
+    --foreground: #e2e8f0; /* Keep light text in light mode */
   }
 }
 
 body {
-  color: var(--foreground);
+  color: #e2e8f0; /* Light gray text that's easy to read on dark backgrounds */
   background: var(--background);
   font-family: 'Inter', Helvetica, Arial, sans-serif;
 }
@@ -54,6 +54,21 @@ body {
 @layer base {
   :root {
     --radius: 0.5rem;
+  }
+  
+  /* Fix text colors for dark theme */
+  p, h1, h2, h3, h4, h5, h6, span, div, label {
+    color: #e2e8f0;
+  }
+  
+  /* Default paragraph text */
+  p {
+    color: #cbd5e1;
+  }
+  
+  /* Small text */
+  .text-xs, .text-sm {
+    color: #94a3b8;
   }
 }
 
@@ -73,33 +88,33 @@ body {
 
   /* Global card styles */
   .card {
-    @apply bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm;
+    @apply bg-gray-900 rounded-lg border border-purple-900/50 shadow-md shadow-purple-900/20;
   }
   
   .card-primary {
-    @apply bg-primary/10 border-primary/20;
+    @apply bg-primary/20 border-primary/30 shadow-lg shadow-primary/10;
   }
 
   /* Global button styles */
   .btn {
-    @apply inline-flex items-center justify-center rounded-lg px-4 py-2 text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none;
+    @apply inline-flex items-center justify-center rounded-lg px-4 py-2 text-sm font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none relative overflow-hidden shadow-md;
   }
   
   .btn-primary {
-    @apply bg-primary text-white hover:bg-primary-dark focus:ring-primary;
+    @apply bg-gradient-to-r from-purple-700 to-primary text-white hover:from-purple-800 hover:to-primary-dark focus:ring-primary shadow-purple-900/30 hover:shadow-lg hover:shadow-purple-700/40 hover:-translate-y-0.5;
   }
   
   .btn-secondary {
-    @apply bg-secondary text-gray-900 hover:bg-gray-200 focus:ring-gray-500 dark:bg-secondary-dark dark:text-gray-100 dark:hover:bg-gray-600;
+    @apply bg-secondary text-gray-100 hover:bg-secondary-dark focus:ring-gray-500 border border-purple-900/30 shadow-purple-900/20 hover:shadow-lg hover:shadow-purple-900/30 hover:-translate-y-0.5;
   }
   
   .btn-outline {
-    @apply border border-gray-300 bg-transparent hover:bg-gray-50 focus:ring-gray-500 dark:border-gray-600 dark:hover:bg-gray-800;
+    @apply border border-purple-500/50 bg-transparent text-purple-300 hover:bg-purple-900/30 focus:ring-purple-500 shadow-purple-900/10 hover:shadow-lg hover:shadow-purple-900/20 hover:-translate-y-0.5;
   }
 
   /* Global input styles */
   .input {
-    @apply block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-gray-900 placeholder-gray-500 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-400;
+    @apply block w-full rounded-lg border border-purple-900/50 bg-gray-900/80 backdrop-blur-sm px-3 py-2 text-gray-100 placeholder-gray-400 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary shadow-inner shadow-purple-900/10 transition-all duration-200;
   }
 
   /* Global loading spinner */
@@ -114,5 +129,63 @@ body {
   /* Global focus styles */
   .focus-ring {
     @apply focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2;
+  }
+  
+  /* Cyberpunk tech effect styles */
+  .glow-sm {
+    text-shadow: 0 0 5px currentColor;
+  }
+  
+  .glow-md {
+    text-shadow: 0 0 8px currentColor;
+  }
+  
+  .glow-lg {
+    text-shadow: 0 0 12px currentColor;
+  }
+  
+  .tech-border {
+    @apply border border-purple-700/30 shadow-md shadow-purple-700/20;
+  }
+  
+  .tech-card {
+    @apply bg-gray-900/80 backdrop-blur-sm rounded-lg border border-purple-700/30 shadow-lg shadow-purple-900/10 p-4;
+  }
+  
+  /* Animated gradient border effect */
+  .gradient-border {
+    position: relative;
+    border-radius: 0.5rem;
+    overflow: hidden;
+  }
+  
+  .gradient-border::after {
+    content: '';
+    position: absolute;
+    inset: -2px;
+    z-index: -1;
+    background: linear-gradient(90deg, #7e22ce, #9333ea, #a855f7, #7e22ce);
+    background-size: 400% 400%;
+    animation: gradient 8s ease infinite;
+    border-radius: 0.5rem;
+  }
+  
+  @keyframes gradient {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
+  
+  /* Text color classes for dark theme */
+  .text-tech-base {
+    color: #e2e8f0;
+  }
+  
+  .text-tech-secondary {
+    color: #94a3b8;
+  }
+  
+  .text-tech-accent {
+    color: #c4b5fd;
   }
 }

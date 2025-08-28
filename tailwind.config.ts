@@ -22,14 +22,14 @@ export default {
   theme: {
   	extend: {
   		colors: {
-  			// Main theme color - change this to update the entire app's color scheme
-  			primary: "#8b5cf6", // Main brand color
-  			"primary-light": "#a78bfa", // For hover states
-  			"primary-dark": "#7c3aed", // For active states
+  			// Main theme color - updated to deep purple for sci-fi tech feel
+  			primary: "#9333ea", // Deep purple main brand color
+  			"primary-light": "#a855f7", // Lighter purple for hover states
+  			"primary-dark": "#7e22ce", // Darker purple for active states
   			
-  			// Secondary colors for backgrounds and text
-  			secondary: "#f8fafc", // Light backgrounds
-  			"secondary-dark": "#334155", // Dark backgrounds
+  			// Secondary colors for backgrounds and text - updated for dark theme
+  			secondary: "#0f172a", // Dark blue background
+  			"secondary-dark": "#1e293b", // Slightly lighter dark blue
   			
   			// Legacy CSS variables for backward compatibility
   			background: 'var(--background)',

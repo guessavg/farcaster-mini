@@ -404,26 +404,26 @@ export function HomeTab() {
   return (
     <div className="max-w-2xl mx-auto px-4 py-8">
       <h2 className="text-2xl font-bold mb-8 text-center">Guess 2/3 of the Average Game</h2>
-      <p className="mb-8 text-sm text-gray-600 dark:text-gray-400 text-center">
+      <p className="mb-8 text-sm text-purple-200 text-center">
         Each player picks a number from 1-100. The player closest to 2/3 of the average wins the pot.
       </p>
 
       {/* Game Rules */}
-      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl p-4 mb-6">
-        <h3 className="font-semibold mb-2">How to Play</h3>
-        <ol className="list-decimal pl-5 text-sm">
+      <div className="bg-gradient-to-r from-gray-900/80 to-purple-900/20 rounded-xl p-5 mb-6 border border-purple-700/20 shadow-lg shadow-purple-900/10">
+        <h3 className="font-semibold mb-2 text-purple-300">How to Play</h3>
+        <ol className="list-decimal pl-5 text-sm text-gray-200">
           <li className="mb-1">Connect your wallet with ETH to enter</li>
           <li className="mb-1">Send any amount of ETH to join the round (your bet)</li>
           <li className="mb-1">When enough players join, a winner is automatically selected</li>
           <li className="mb-1">The closest guess to ⅔ of the average wins the entire pot</li>
         </ol>
-        <p className="text-xs mt-2 text-gray-500">Your ETH amount represents your guess from 1-100</p>
+        <p className="text-xs mt-2 text-purple-300">Your ETH amount represents your guess from 1-100</p>
       </div>
       
       {/* Wallet Connection / Betting Interface */}
       {!isConnected ? (
-        <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700">
-          <h3 className="font-semibold mb-4">Step 1: Connect Your Wallet</h3>
+        <div className="bg-gray-900/80 rounded-lg p-6 shadow-lg border border-purple-700/20 shadow-purple-900/10">
+          <h3 className="font-semibold mb-4 text-purple-200">Step 1: Connect Your Wallet</h3>
           <Button
             onClick={handleConnect}
             className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 rounded"
@@ -431,8 +431,8 @@ export function HomeTab() {
           >
             {isPending ? "Connecting..." : "Connect Wallet"}
           </Button>
-          <p className="mt-2 text-xs text-gray-500">Connect your wallet to play</p>
-          <p className="mt-1 text-xs text-gray-500">
+          <p className="mt-2 text-xs text-purple-300">Connect your wallet to play</p>
+          <p className="mt-1 text-xs text-purple-300">
             Make sure you have a wallet extension like MetaMask installed or are using a dApp browser
           </p>
           
@@ -445,7 +445,7 @@ export function HomeTab() {
                 <span>{errorMessage}</span>
               </div>
               {errorMessage.includes("RPC") && (
-                <p className="mt-2 text-xs text-gray-700 dark:text-gray-300">
+                <p className="mt-2 text-xs text-gray-300">
                   RPC errors can happen when too many requests are made to the blockchain. Try again in a moment.
                 </p>
               )}
@@ -455,13 +455,13 @@ export function HomeTab() {
       ) : (
         <>
           {hasPlayedData ? (
-            <div className="bg-green-100 dark:bg-green-900 p-4 rounded-lg mb-6 text-center">
-              <p>You&apos;ve already joined this round!</p>
-              <p className="text-sm mt-2">Wait for the game to end to see results.</p>
+            <div className="bg-green-900/50 p-4 rounded-lg mb-6 text-center border border-green-700/30 shadow-lg shadow-green-900/10">
+              <p className="text-green-300">You&apos;ve already joined this round!</p>
+              <p className="text-sm mt-2 text-green-200">Wait for the game to end to see results.</p>
             </div>
           ) : (
-            <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700">
-              <h3 className="font-semibold mb-4">Step 2: Place Your Bet</h3>
+            <div className="bg-gray-900/80 rounded-lg p-6 shadow-lg border border-purple-700/20 shadow-purple-900/10">
+              <h3 className="font-semibold mb-4 text-purple-200">Step 2: Place Your Bet</h3>
               <div className="space-y-4">
                 <div>
                   <Label htmlFor="amount">Amount (ETH) - This will be your guess value</Label>
@@ -475,40 +475,42 @@ export function HomeTab() {
                     step="0.01"
                     disabled={isLoading || isPending || isConfirming}
                   />
-                  <p className="mt-1 text-xs text-gray-500">
+                  <p className="mt-1 text-xs text-purple-300">
                     Send any amount of ETH. The closer to ⅔ of the average, the better!
                   </p>
                 </div>
                 
                 <Button
                   onClick={handlePlay}
-                  className={`w-full ${
+                  className={`w-full gradient-border ${
                     isLoading || isPending || isConfirming
-                      ? "bg-gray-400 cursor-not-allowed"
-                      : "bg-blue-600 hover:bg-blue-700"
-                  } text-white font-medium py-2 rounded`}
+                      ? "bg-gray-700 cursor-not-allowed"
+                      : "bg-gradient-to-r from-purple-800 to-purple-600 hover:from-purple-700 hover:to-purple-500"
+                  } text-white font-medium py-3 px-4 rounded-lg relative overflow-hidden transition-all duration-200 hover:shadow-lg hover:shadow-purple-700/30`}
                   disabled={isLoading || isPending || isConfirming || !amount}
                 >
-                  {isLoading || isPending
-                    ? "Processing..."
-                    : isConfirming
-                    ? "Confirming..."
-                    : "Place Bet"}
+                  <span className={isLoading || isPending || isConfirming ? "" : "glow-sm"}>
+                    {isLoading || isPending
+                      ? "Processing..."
+                      : isConfirming
+                      ? "Confirming..."
+                      : "Place Bet"}
+                  </span>
                 </Button>
                 
-                <p className="text-xs text-gray-500 mt-1">
-                  Connected as: {address?.slice(0, 6)}...{address?.slice(-4)}
+                <p className="text-xs text-purple-300 mt-1">
+                  Connected as: <span className="text-blue-300">{address?.slice(0, 6)}...{address?.slice(-4)}</span>
                 </p>
                 
                 {balance && (
-                  <p className="text-xs text-gray-500">
-                    Available balance: {formatEther(balance?.value).substring(0, 8)} ETH
+                  <p className="text-xs text-purple-300">
+                    Available balance: <span className="text-green-300 font-medium">{formatEther(balance?.value).substring(0, 8)} ETH</span>
                   </p>
                 )}
               </div>
               
               {errorMessage && (
-                <div className="bg-red-100 dark:bg-red-900 p-3 rounded text-sm text-red-700 dark:text-red-300 mt-3">
+                <div className="bg-red-900/40 p-4 rounded text-sm text-red-300 mt-3 border border-red-800/40 shadow-lg shadow-red-900/10">
                   {errorMessage}
                 </div>
               )}
@@ -518,29 +520,29 @@ export function HomeTab() {
       )}
 
       {/* Game History and Player Records */}
-      <div className="border-t border-gray-200 dark:border-gray-700 pt-4 mt-6 mx-auto max-w-2xl">
+      <div className="border-t border-purple-800/30 pt-4 mt-6 mx-auto max-w-2xl">
         {/* Current Game Status */}
         <div className="mb-6">
-          <h3 className="font-semibold mb-3">Current Game Status</h3>
-          <div className="grid grid-cols-2 gap-2">
-            <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg">
-              <p className="text-xs text-gray-500">Game ID</p>
+          <h3 className="font-semibold mb-3 text-purple-300">Current Game Status</h3>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="bg-gray-900/80 backdrop-blur-sm p-4 rounded-lg border border-purple-700/20 shadow-lg shadow-purple-900/10">
+              <p className="text-xs text-purple-400 mb-1">Game ID</p>
               <div className="flex items-center">
                 {isConnected ? (
-                  <p className="font-medium">{gameId ? gameId.toString() : 'Loading...'}</p>
+                  <p className="font-medium text-white">{gameId ? gameId.toString() : <span className="text-purple-400/70">Loading...</span>}</p>
                 ) : (
                   <div>
                     <p className="text-sm text-amber-600 dark:text-amber-400">Connect wallet to view</p>
-                    <p className="text-xs text-gray-500 mt-1">Game data requires a wallet connection</p>
+                    <p className="text-xs text-purple-300 mt-1">Game data requires a wallet connection</p>
                   </div>
                 )}
               </div>
             </div>
-            <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg">
-              <p className="text-xs text-gray-500">Total Pot</p>
+            <div className="bg-gray-900/80 backdrop-blur-sm p-4 rounded-lg border border-purple-700/20 shadow-lg shadow-purple-900/10">
+              <p className="text-xs text-purple-400 mb-1">Total Pot</p>
               <div className="flex items-center">
                 {isConnected ? (
-                  <p className="font-medium">{totalAmount ? `${formatEther(totalAmount).substring(0, 8)} ETH` : 'Loading...'}</p>
+                  <p className="font-medium text-white">{totalAmount ? <span className="text-green-300 glow-sm">{formatEther(totalAmount).substring(0, 8)} ETH</span> : <span className="text-purple-400/70">Loading...</span>}</p>
                 ) : (
                   <p className="text-sm text-amber-600 dark:text-amber-400">Connect wallet to view</p>
                 )}
@@ -549,13 +551,13 @@ export function HomeTab() {
           </div>
           
           {!isConnected && (
-            <div className="mt-4 bg-amber-50 dark:bg-amber-900/20 p-3 rounded-lg text-center">
-              <p className="text-sm font-medium text-amber-700 dark:text-amber-300">
+            <div className="mt-4 bg-gray-800/80 backdrop-blur-sm border border-amber-700/20 p-4 rounded-lg text-center shadow-lg shadow-amber-900/10">
+              <p className="text-sm font-medium text-amber-400">
                 Connect your wallet to see game status and participate
               </p>
               <button 
                 onClick={() => connect({ connector: connectors[0] })} 
-                className="mt-2 bg-amber-600 hover:bg-amber-700 text-white py-2 px-4 rounded text-sm"
+                className="mt-2 bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-white py-2 px-6 rounded-lg text-sm shadow-md shadow-amber-900/30 hover:shadow-lg hover:shadow-amber-700/30 transition-all duration-200"
               >
                 Connect Wallet
               </button>
@@ -564,37 +566,43 @@ export function HomeTab() {
         </div>
         
         {/* Last Winner */}
-        <h3 className="font-semibold mb-3">Recent Winner</h3>
+        <h3 className="font-semibold mb-3 text-purple-300">Recent Winner</h3>
         {lastWinner ? (
-          <div className="bg-yellow-50 dark:bg-yellow-900/20 p-3 rounded-lg mb-4">
+          <div className="bg-yellow-900/20 p-4 rounded-lg mb-4 border border-yellow-700/30 shadow-lg shadow-yellow-900/10">
             <div className="grid grid-cols-2 gap-2 mb-2">
               <div>
-                <p className="text-xs text-gray-500">Game</p>
-                <p className="font-medium">#{lastWinner.args.gameId?.toString()}</p>
+                <p className="text-xs text-purple-400">Game</p>
+                <p className="font-medium text-white">#{lastWinner.args.gameId?.toString()}</p>
               </div>
               <div>
-                <p className="text-xs text-gray-500">Winner</p>
-                <p className="font-medium">{lastWinner.args.winner.substring(0, 6)}...{lastWinner.args.winner.substring(38)}</p>
+                <p className="text-xs text-purple-400">Winner</p>
+                <p className="font-medium text-white">{lastWinner.args.winner.substring(0, 6)}...{lastWinner.args.winner.substring(38)}</p>
               </div>
             </div>
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <p className="text-xs text-gray-500">Reward</p>
-                <p className="font-medium text-green-600 dark:text-green-400">{formatEther(lastWinner.args.reward).substring(0, 8)} ETH</p>
+                <p className="text-xs text-purple-400">Reward</p>
+                <p className="font-medium text-green-400 glow-sm">{formatEther(lastWinner.args.reward).substring(0, 8)} ETH</p>
               </div>
               <div>
-                <p className="text-xs text-gray-500">Target (2/3 of avg)</p>
-                <p className="font-medium">{lastWinner.args.guessTarget?.toString()}</p>
+                <p className="text-xs text-purple-400">Target (2/3 of avg)</p>
+                <p className="font-medium text-blue-300">{lastWinner.args.guessTarget?.toString()}</p>
               </div>
             </div>
           </div>
         ) : isLoadingPlayers ? (
-          <div className="flex justify-center my-4">
-            <div className="animate-spin h-5 w-5 border-2 border-primary border-t-transparent rounded-full"></div>
+          <div className="flex justify-center items-center my-4 py-2">
+            <div className="animate-spin h-6 w-6 border-2 border-purple-500 border-t-transparent rounded-full shadow-lg shadow-purple-500/30"></div>
+            <span className="ml-3 text-sm text-purple-300">Loading winners...</span>
           </div>
         ) : (
-          <div className="bg-gray-50 dark:bg-gray-800/50 p-3 rounded-lg mb-4">
-            <p className="text-center text-sm text-gray-500">No recent winners found</p>
+          <div className="bg-gray-900/40 backdrop-blur-sm p-4 rounded-lg mb-4 border border-purple-800/20 shadow-lg shadow-purple-900/10">
+            <div className="flex flex-col items-center justify-center py-2">
+              <svg className="w-8 h-8 text-purple-500/50 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+              </svg>
+              <p className="text-center text-sm text-purple-300">No recent winners found</p>
+            </div>
           </div>
         )}
         
@@ -632,34 +640,34 @@ export function HomeTab() {
         )}
         
         {/* Data Fetching Controls */}
-        <div className="bg-gray-50 dark:bg-gray-800/50 p-3 rounded-lg mb-4 mt-4">
-          <h4 className="text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Event Range Settings</h4>
-          <p className="text-xs text-gray-500 mb-2">
+        <div className="bg-gray-900/80 backdrop-blur-sm p-4 rounded-lg mb-4 mt-4 border border-purple-700/30 shadow-lg shadow-purple-900/10">
+          <h4 className="text-sm font-medium mb-2 text-purple-300">Event Range Settings</h4>
+          <p className="text-xs text-purple-200/70 mb-3">
             Adjust the block range if you encounter RPC errors. Smaller ranges are more reliable but show less history.
           </p>
           
-          <div className="flex flex-wrap gap-2 mb-2">
+          <div className="flex flex-wrap gap-2 mb-3">
             <button
               onClick={() => setBlockRange(10n)}
-              className={`px-2 py-1 text-xs rounded ${blockRange === 10n ? 'bg-blue-600 text-white' : 'bg-gray-100 dark:bg-gray-700'}`}
+              className={`px-3 py-1.5 text-xs rounded-md transition-all duration-200 border ${blockRange === 10n ? 'bg-purple-700 border-purple-500 text-white shadow-md shadow-purple-900/30' : 'bg-gray-800/80 border-purple-700/20 text-purple-200 hover:bg-gray-700'}`}
             >
               Very Small (10 blocks)
             </button>
             <button
               onClick={() => setBlockRange(50n)}
-              className={`px-2 py-1 text-xs rounded ${blockRange === 50n ? 'bg-blue-600 text-white' : 'bg-gray-100 dark:bg-gray-700'}`}
+              className={`px-3 py-1.5 text-xs rounded-md transition-all duration-200 border ${blockRange === 50n ? 'bg-purple-700 border-purple-500 text-white shadow-md shadow-purple-900/30' : 'bg-gray-800/80 border-purple-700/20 text-purple-200 hover:bg-gray-700'}`}
             >
               Small (50 blocks)
             </button>
             <button
               onClick={() => setBlockRange(200n)}
-              className={`px-2 py-1 text-xs rounded ${blockRange === 200n ? 'bg-blue-600 text-white' : 'bg-gray-100 dark:bg-gray-700'}`}
+              className={`px-3 py-1.5 text-xs rounded-md transition-all duration-200 border ${blockRange === 200n ? 'bg-purple-700 border-purple-500 text-white shadow-md shadow-purple-900/30' : 'bg-gray-800/80 border-purple-700/20 text-purple-200 hover:bg-gray-700'}`}
             >
               Medium (200 blocks)
             </button>
             <button
               onClick={() => setBlockRange(1000n)}
-              className={`px-2 py-1 text-xs rounded ${blockRange === 1000n ? 'bg-blue-600 text-white' : 'bg-gray-100 dark:bg-gray-700'}`}
+              className={`px-3 py-1.5 text-xs rounded-md transition-all duration-200 border ${blockRange === 1000n ? 'bg-purple-700 border-purple-500 text-white shadow-md shadow-purple-900/30' : 'bg-gray-800/80 border-purple-700/20 text-purple-200 hover:bg-gray-700'}`}
             >
               Large (1000 blocks)
             </button>
@@ -672,40 +680,61 @@ export function HomeTab() {
               setTimeout(() => window.location.reload(), 100);
             }}
             disabled={isLoadingPlayers}
-            className="w-full mt-1 bg-blue-600 hover:bg-blue-700 text-white py-1 px-2 rounded text-xs"
+            className="w-full mt-1 bg-gradient-to-r from-purple-700 to-purple-600 hover:from-purple-600 hover:to-purple-500 text-white py-2 px-4 rounded-md text-xs font-medium shadow-md shadow-purple-900/20 hover:shadow-lg hover:shadow-purple-900/30 transition-all duration-200 flex items-center justify-center space-x-1"
           >
-            {isLoadingPlayers ? 'Refreshing...' : 'Refresh Data with Selected Range'}
+            {isLoadingPlayers ? (
+              <>
+                <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <span>Refreshing...</span>
+              </>
+            ) : (
+              <>
+                <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                </svg>
+                <span>Refresh Data with Selected Range</span>
+              </>
+            )}
           </button>
           
           {errorMessage && errorMessage.includes("RPC") && (
-            <p className="mt-2 text-xs text-red-500">
-              RPC error detected. Try using a smaller block range.
-            </p>
+            <div className="mt-3 p-2 rounded-md bg-red-900/30 border border-red-800/40 flex items-center">
+              <svg className="w-4 h-4 text-red-400 mr-1.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+              </svg>
+              <p className="text-xs text-red-300">
+                RPC error detected. Try using a smaller block range.
+              </p>
+            </div>
           )}
         </div>
         
         {/* Player Records */}
-        <h3 className="font-semibold mb-3 mt-6">Player Records</h3>
+        <h3 className="font-semibold mb-3 mt-6 text-purple-300">Player Records</h3>
         {isLoadingPlayers ? (
-          <div className="flex justify-center my-4">
-            <div className="animate-spin h-5 w-5 border-2 border-primary border-t-transparent rounded-full"></div>
+          <div className="flex justify-center items-center my-6 py-4">
+            <div className="animate-spin h-6 w-6 border-2 border-purple-500 border-t-transparent rounded-full shadow-lg shadow-purple-500/30"></div>
+            <span className="ml-3 text-sm text-purple-300">Loading data...</span>
           </div>
         ) : players.length > 0 ? (
-          <div className="overflow-hidden border border-gray-200 dark:border-gray-700 rounded-lg">
-            <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-              <thead className="bg-gray-50 dark:bg-gray-800">
+          <div className="overflow-hidden border border-purple-800/30 rounded-lg shadow-lg shadow-purple-900/10">
+            <table className="min-w-full divide-y divide-purple-800/30">
+              <thead className="bg-gray-900/70">
                 <tr>
-                  <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400">Player</th>
-                  <th scope="col" className="px-3 py-2 text-right text-xs font-medium text-gray-500 dark:text-gray-400">Amount</th>
+                  <th scope="col" className="px-3 py-2.5 text-left text-xs font-medium text-purple-300">Player</th>
+                  <th scope="col" className="px-3 py-2.5 text-right text-xs font-medium text-purple-300">Amount</th>
                 </tr>
               </thead>
-              <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
+              <tbody className="bg-gray-900/40 backdrop-blur-sm divide-y divide-purple-800/20">
                 {players.map((player, index) => (
                   <tr key={index}>
-                    <td className="px-3 py-2 whitespace-nowrap text-xs">
+                    <td className="px-3 py-2.5 whitespace-nowrap text-xs text-blue-300">
                       {player.address.substring(0, 6)}...{player.address.substring(38)}
                     </td>
-                    <td className="px-3 py-2 whitespace-nowrap text-xs text-right">
+                    <td className="px-3 py-2.5 whitespace-nowrap text-xs text-right text-green-300">
                       {formatEther(player.amount).substring(0, 8)} ETH
                     </td>
                   </tr>
@@ -714,9 +743,14 @@ export function HomeTab() {
             </table>
           </div>
         ) : (
-          <div className="bg-gray-50 dark:bg-gray-800/50 p-3 rounded-lg">
-            <p className="text-center text-sm text-gray-500">No player records found in this block range</p>
-            <p className="text-center text-xs text-gray-500 mt-1">Try increasing the block range to see more history</p>
+          <div className="bg-gray-900/40 backdrop-blur-sm p-4 rounded-lg border border-purple-800/20 shadow-lg shadow-purple-900/10">
+            <div className="flex flex-col items-center justify-center py-2">
+              <svg className="w-8 h-8 text-purple-500/50 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+              </svg>
+              <p className="text-center text-sm text-purple-300">No player records found in this block range</p>
+              <p className="text-center text-xs text-purple-200/70 mt-1">Try increasing the block range to see more history</p>
+            </div>
           </div>
         )}
       </div>

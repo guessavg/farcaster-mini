@@ -12,7 +12,7 @@ import { guess23Abi } from "~/lib/abi";
 import { APP_NAME } from "~/lib/constants";
 
 // Default contract address - update with your deployed contract address
-const CONTRACT_ADDRESS = "0x4BbeEa57578E4a078CB8ae4F98C83E45613868D2"; // Base contract
+const CONTRACT_ADDRESS = "0x4BbeE9F876ff56832E724DC9a7bD06538C8868D2"; // Base contract
 // For testing in different chains, add more contract addresses
 
 /**
@@ -403,9 +403,12 @@ export function HomeTab() {
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-8">
-      <h2 className="text-2xl font-bold mb-8 text-center">Guess 2/3 of the Average Game</h2>
-      <p className="mb-8 text-sm text-purple-200 text-center">
-        Each player picks a number from 1-100. The player closest to 2/3 of the average wins the pot.
+      <h2 className="text-2xl font-bold mb-4 text-center">Guess 2/3 of the Average Game</h2>
+      <p className="mb-2 text-sm text-purple-200 text-center">
+        Bet ETH to enter the mathematical mind game! The player closest to 2/3 of the average bet wins all ETH.
+      </p>
+      <p className="mb-8 text-xs text-purple-300/70 text-center">
+        Current parameters: Small rounds (min=2, max=3 players) | Game completes quickly!
       </p>
 
       {/* Game Rules */}
@@ -413,11 +416,11 @@ export function HomeTab() {
         <h3 className="font-semibold mb-2 text-purple-300">How to Play</h3>
         <ol className="list-decimal pl-5 text-sm text-gray-200">
           <li className="mb-1">Connect your wallet with ETH to enter</li>
-          <li className="mb-1">Send any amount of ETH to join the round (your bet)</li>
-          <li className="mb-1">When enough players join, a winner is automatically selected</li>
-          <li className="mb-1">The closest guess to ⅔ of the average wins the entire pot</li>
+          <li className="mb-1">Send any amount of ETH from 0.01 to 1.00 as your bet</li>
+          <li className="mb-1">Game ends automatically after 2-3 players join</li>
+          <li className="mb-1">The closest guess to ⅔ of the average wins the entire pot!</li>
         </ol>
-        <p className="text-xs mt-2 text-purple-300">Your ETH amount represents your guess from 1-100</p>
+        <p className="text-xs mt-2 text-purple-300">Strategy: Your ETH amount (e.g., 0.42 ETH) = your guess of what 2/3 of the average will be</p>
       </div>
       
       {/* Wallet Connection / Betting Interface */}
@@ -464,7 +467,7 @@ export function HomeTab() {
               <h3 className="font-semibold mb-4 text-purple-200">Step 2: Place Your Bet</h3>
               <div className="space-y-4">
                 <div>
-                  <Label htmlFor="amount">Amount (ETH) - This will be your guess value</Label>
+                  <Label htmlFor="amount">Your Bet Amount (ETH) = Your Prediction</Label>
                   <Input
                     id="amount"
                     value={amount}
@@ -476,7 +479,7 @@ export function HomeTab() {
                     disabled={isLoading || isPending || isConfirming}
                   />
                   <p className="mt-1 text-xs text-purple-300">
-                    Send any amount of ETH. The closer to ⅔ of the average, the better!
+                    Choose between 0.01-1.00 ETH. Think strategically - game ends after 2-3 players!
                   </p>
                 </div>
                 
@@ -566,7 +569,7 @@ export function HomeTab() {
         </div>
         
         {/* Last Winner */}
-        <h3 className="font-semibold mb-3 text-purple-300">Recent Winner</h3>
+        <h3 className="font-semibold mb-3 text-purple-300">Latest Winner 🏆</h3>
         {lastWinner ? (
           <div className="bg-yellow-900/20 p-4 rounded-lg mb-4 border border-yellow-700/30 shadow-lg shadow-yellow-900/10">
             <div className="grid grid-cols-2 gap-2 mb-2">
@@ -601,7 +604,8 @@ export function HomeTab() {
               <svg className="w-8 h-8 text-purple-500/50 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
               </svg>
-              <p className="text-center text-sm text-purple-300">No recent winners found</p>
+              <p className="text-center text-sm text-purple-300">No recent winners yet</p>
+              <p className="text-center text-xs text-purple-200/70 mt-1">Be the first to start a new round!</p>
             </div>
           </div>
         )}
@@ -641,9 +645,9 @@ export function HomeTab() {
         
         {/* Data Fetching Controls */}
         <div className="bg-gray-900/80 backdrop-blur-sm p-4 rounded-lg mb-4 mt-4 border border-purple-700/30 shadow-lg shadow-purple-900/10">
-          <h4 className="text-sm font-medium mb-2 text-purple-300">Event Range Settings</h4>
+          <h4 className="text-sm font-medium mb-2 text-purple-300">History Settings</h4>
           <p className="text-xs text-purple-200/70 mb-3">
-            Adjust the block range if you encounter RPC errors. Smaller ranges are more reliable but show less history.
+            Adjust how far back to search for game events. Small ranges load faster but show less history.
           </p>
           
           <div className="flex flex-wrap gap-2 mb-3">
@@ -706,14 +710,14 @@ export function HomeTab() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
               </svg>
               <p className="text-xs text-red-300">
-                RPC error detected. Try using a smaller block range.
+                Network error detected. Try using a smaller history range.
               </p>
             </div>
           )}
         </div>
         
         {/* Player Records */}
-        <h3 className="font-semibold mb-3 mt-6 text-purple-300">Player Records</h3>
+        <h3 className="font-semibold mb-3 mt-6 text-purple-300">Current Round Players</h3>
         {isLoadingPlayers ? (
           <div className="flex justify-center items-center my-6 py-4">
             <div className="animate-spin h-6 w-6 border-2 border-purple-500 border-t-transparent rounded-full shadow-lg shadow-purple-500/30"></div>
@@ -748,8 +752,8 @@ export function HomeTab() {
               <svg className="w-8 h-8 text-purple-500/50 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
               </svg>
-              <p className="text-center text-sm text-purple-300">No player records found in this block range</p>
-              <p className="text-center text-xs text-purple-200/70 mt-1">Try increasing the block range to see more history</p>
+              <p className="text-center text-sm text-purple-300">No active players in the current round</p>
+              <p className="text-center text-xs text-purple-200/70 mt-1">Be the first to join! Game ends after just 2-3 players.</p>
             </div>
           </div>
         )}
@@ -757,8 +761,24 @@ export function HomeTab() {
       
       {/* Social Sharing */}
       <div className="mt-8 text-center">
-        <h3 className="text-sm font-semibold mb-2">Share with friends</h3>
-        <Share text={`Join me in the Guess 2/3 Game on ${APP_NAME}!`} />
+        <h3 className="text-sm font-semibold mb-2 text-purple-300">Challenge your friends</h3>
+        <Share text={`Play the mathematical mind game! Guess 2/3 of the average and win ETH on ${APP_NAME} v0.0.1 🧠💰`} />
+      </div>
+      
+      {/* Contract Transparency */}
+      <div className="mt-6 text-center border-t border-purple-800/30 pt-4">
+        <p className="text-xs text-purple-300/70">
+          Smart Contract: <a 
+            href="https://basescan.org/address/0x4BbeE9F876ff56832E724DC9a7bD06538C8868D2" 
+            target="_blank" 
+            rel="noopener noreferrer" 
+            className="text-blue-400 hover:text-blue-300 hover:underline transition-colors">
+            0x4BbeE9F876ff56832E724DC9a7bD06538C8868D2
+          </a>
+        </p>
+        <p className="text-xs text-purple-200/60 mt-1">
+          Code publicly verifiable on Basescan
+        </p>
       </div>
     </div>
   );

@@ -107,7 +107,7 @@ export default function App(
       {/* Main content should be centered */}
       <div className="container py-4 pb-8 relative z-10">
         {/* Main title */}
-        <h1 className="text-3xl font-bold text-center mb-6 bg-clip-text text-transparent bg-gradient-to-r from-purple-300 to-purple-500 drop-shadow-sm">Guess 2/3 Game</h1>
+        <h1 className="text-3xl font-bold text-center mb-6 bg-clip-text text-transparent bg-gradient-to-r from-purple-300 to-purple-500 drop-shadow-sm">Guess 2/3 Game <span className="text-xs align-top text-purple-400">v0.0.1</span></h1>
 
         {/* Always render HomeTab */}
         <HomeTab />

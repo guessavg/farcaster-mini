@@ -20,6 +20,11 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+// Genera un ID único para uso en desarrollo (útil para identificación cuando no hay FID)
+export function generateDevId(): string {
+  return `dev-${Math.floor(Math.random() * 1000000)}`;
+}
+
 export function getMiniAppEmbedMetadata(ogImageUrl?: string) {
   return {
     version: 'next',

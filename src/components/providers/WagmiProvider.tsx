@@ -1,5 +1,3 @@
-import { WagmiProvider } from "wagmi";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { useConnect, useAccount } from "wagmi";
 import React from "react";
@@ -7,11 +5,7 @@ import React from "react";
 // Add ethereum to the window object type
 declare global {
   interface Window {
-    ethereum?: {
-      isCoinbaseWallet?: boolean;
-      isCoinbaseWalletExtension?: boolean;
-      isCoinbaseWalletBrowser?: boolean;
-    };
+    ethereum?: any; // Use 'any' to avoid conflicts with existing definitions
   }
 }
 
@@ -48,28 +42,19 @@ function useCoinbaseWalletAutoConnect() {
   return isCoinbaseWallet;
 }
 
-// Import config from our wagmi.ts file
-import { config as miniAppConfig } from '~/lib/wagmi';
-
-// Use our miniAppConfig for Farcaster Mini App
-export const config = miniAppConfig;
-
-const queryClient = new QueryClient();
-
 // Wrapper component that provides Coinbase Wallet auto-connection
 function CoinbaseWalletAutoConnect({ children }: { children: React.ReactNode }) {
   useCoinbaseWalletAutoConnect();
   return <>{children}</>;
 }
 
+// We no longer create a WagmiProvider here to avoid duplication
+// Instead, we only export the CoinbaseWalletAutoConnect component to use in the main providers.tsx
+export { CoinbaseWalletAutoConnect };
+
+// Keep this for backward compatibility, but make it a no-op that just returns children
 export default function Provider({ children }: { children: React.ReactNode }) {
-  return (
-    <WagmiProvider config={config}>
-      <QueryClientProvider client={queryClient}>
-        <CoinbaseWalletAutoConnect>
-          {children}
-        </CoinbaseWalletAutoConnect>
-      </QueryClientProvider>
-    </WagmiProvider>
-  );
+  // Simply return children without wrapping in WagmiProvider to avoid duplication
+  console.warn('WagmiProvider from components/providers/WagmiProvider.tsx is deprecated. Use app/providers.tsx instead.');
+  return <>{children}</>;
 }

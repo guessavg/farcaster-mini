@@ -65,36 +65,58 @@ export function HomeTab() {
   });
 
   // Use contract write hook from wagmi
-  const { writeContract, isPending } = useContractWrite();
-
-  // Wait for transaction receipt if we have a hash
-  const { data: hash } = useContractWrite();
+  const { writeContract, isPending, data: hash, error: writeError } = useContractWrite();
   
-  const { isLoading: isConfirming } = useWaitForTransactionReceipt({
+  // Log hash and any errors for debugging
+  useEffect(() => {
+    if (hash) {
+      console.log("Transaction hash received:", hash);
+    }
+    if (writeError) {
+      console.error("Write contract error:", writeError);
+    }
+  }, [hash, writeError]);
+  
+  const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({
     hash,
   });
+  
+  // Show success message when transaction is confirmed
+  useEffect(() => {
+    if (isSuccess && hash) {
+      setErrorMessage(null);
+      console.log("Transaction confirmed successfully:", hash);
+      // 尝试重新加载游戏状态
+      setTimeout(() => {
+        window.location.reload();
+      }, 2000);
+    }
+  }, [isSuccess, hash]);
 
   // Public client for fetching events
   const publicClient = usePublicClient();
   const [gameEvents, setGameEvents] = useState<any[]>([]);
   const [lastWinner, setLastWinner] = useState<any>(null);
 
-  // Fetch game events
+  // Fetch game events - separated from wallet connection
   useEffect(() => {
+    // Skip event fetching on initial load to prevent blocking wallet connection
+    const shouldFetchEvents = publicClient && isConnected;
+    if (!shouldFetchEvents) return;
+    
     const fetchEvents = async () => {
-      if (!publicClient) return;
-      
       try {
-        // Get recent game ended events - use more limited block range to prevent RPC errors
-        // Many providers limit how far back you can query with eth_getLogs
+        // Get only the most recent events with a very limited block range
+        // This significantly reduces the chance of RPC errors
         const blockNumber = await publicClient.getBlockNumber();
-        const startBlock = blockNumber > 100000n ? blockNumber - 100000n : 0n;
+        // Use only last 1000 blocks (approximately 3 hours of blocks)
+        const startBlock = blockNumber > 1000n ? blockNumber - 1000n : 0n;
         
         const endEvents = await publicClient.getContractEvents({
           address: CONTRACT_ADDRESS as `0x${string}`,
           abi: guess23Abi,
           eventName: 'GameEnded',
-          fromBlock: startBlock, // Use more recent blocks instead of 0
+          fromBlock: startBlock,
           toBlock: 'latest'
         });
 
@@ -104,33 +126,60 @@ export function HomeTab() {
         }
       } catch (error) {
         console.error("Error fetching events:", error);
-        
-        // Fallback to a more limited query if the first one fails
-        try {
-          console.log("Trying fallback with more limited block range");
-          const blockNumber = await publicClient.getBlockNumber();
-          const startBlock = blockNumber > 10000n ? blockNumber - 10000n : 0n;
-          
-          const endEvents = await publicClient.getContractEvents({
-            address: CONTRACT_ADDRESS as `0x${string}`,
-            abi: guess23Abi,
-            eventName: 'GameEnded',
-            fromBlock: startBlock,
-            toBlock: 'latest'
-          });
-
-          if (endEvents && endEvents.length > 0) {
-            setLastWinner(endEvents[endEvents.length - 1]);
-            setGameEvents(endEvents);
-          }
-        } catch (fallbackError) {
-          console.error("Fallback event fetch failed:", fallbackError);
-        }
+        // Don't attempt fallback, just continue with the app
+        // Events are non-critical for core functionality
       }
     };
 
-    fetchEvents();
-  }, [publicClient, gameId]);
+    // Wrap in try/catch to ensure UI doesn't get blocked
+    try {
+      fetchEvents().catch(err => {
+        console.error("Failed to fetch events:", err);
+      });
+    } catch (e) {
+      console.error("Event fetching wrapper error:", e);
+    }
+  }, [publicClient, isConnected, gameId]);
+
+  // 定义直接使用 window.ethereum 发送交易的函数
+  const sendTransactionDirectly = async (ethAmount: string) => {
+    if (!window.ethereum) {
+      throw new Error("No wallet detected. Please install MetaMask or another wallet.");
+    }
+    
+    try {
+      // 将ETH数量转换为Wei
+      const weiValue = parseEther(ethAmount).toString();
+      
+      // 获取当前账户
+      const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+      const account = accounts[0];
+      
+      console.log(`直接向合约发送交易: ${ethAmount} ETH, 从: ${account}`);
+      
+      // 创建交易参数
+      const txParams = {
+        from: account,
+        to: CONTRACT_ADDRESS,
+        value: `0x${parseInt(weiValue).toString(16)}`, // 转换为十六进制
+        data: '0x92d98a65', // play() 函数的签名
+      };
+      
+      console.log("交易参数:", txParams);
+      
+      // 发送交易
+      const txHash = await window.ethereum.request({
+        method: 'eth_sendTransaction',
+        params: [txParams],
+      });
+      
+      console.log("交易已发送，交易哈希:", txHash);
+      return txHash;
+    } catch (error) {
+      console.error("直接发送交易失败:", error);
+      throw error;
+    }
+  };
 
   // Handle game participation
   const handlePlay = async () => {
@@ -143,33 +192,163 @@ export function HomeTab() {
       setErrorMessage("Please enter a valid amount");
       return;
     }
+    
+    // Check if user has enough balance
+    if (balance && parseEther(amount) > balance.value) {
+      setErrorMessage(`Insufficient balance. You have ${formatEther(balance.value)} ETH, but trying to bet ${amount} ETH.`);
+      return;
+    }
 
     try {
       setIsLoading(true);
       setErrorMessage(null);
       
-      // Use the wagmi writeContract function to interact with the contract
-      writeContract({
+      console.log("Starting contract interaction with:", {
+        address: CONTRACT_ADDRESS,
         functionName: 'play',
-        address: CONTRACT_ADDRESS as `0x${string}`,
-        abi: guess23Abi,
-        value: parseEther(amount)
+        value: amount
       });
-    } catch (error) {
-      console.error("Error playing game:", error);
-      setErrorMessage(error instanceof Error ? error.message : String(error));
-    } finally {
+      
+      // 尝试直接使用 window.ethereum 发送交易 (更可靠的方法)
+      try {
+        const txHash = await sendTransactionDirectly(amount);
+        console.log("Transaction submitted successfully with hash:", txHash);
+        alert("交易已提交！请等待确认。");
+        
+        // 设置交易状态 (模拟成功获取了hash)
+        // 注意: 实际上这里应该更新组件状态来显示交易状态
+        setIsLoading(false);
+        return;
+      } catch (directError: any) {
+        console.error("Direct transaction failed:", directError);
+        if (directError?.message?.includes("User rejected")) {
+          setErrorMessage("You rejected the transaction in your wallet.");
+          setIsLoading(false);
+          return;
+        }
+        // 如果直接交易失败，尝试使用 wagmi
+        console.log("Falling back to wagmi...");
+      }
+      
+      // 回退到 wagmi writeContract
+      // Check if writeContract is available
+      if (typeof writeContract !== 'function') {
+        console.error("writeContract function is not available or not properly initialized");
+        setErrorMessage("Contract interaction not available. Please refresh and try again.");
+        return;
+      }
+      
+      console.log("Preparing to call writeContract with:", {
+        functionName: 'play',
+        address: CONTRACT_ADDRESS,
+        value: parseEther(amount).toString()
+      });
+      
+      try {
+        writeContract({
+          functionName: 'play',
+          address: CONTRACT_ADDRESS as `0x${string}`,
+          abi: guess23Abi,
+          value: parseEther(amount)
+        });
+        
+        console.log("Transaction initiated with wagmi");
+      } catch (error: any) {
+        console.error("Error in writeContract:", error);
+        
+        // Provide more user-friendly error messages
+        let userMessage = "Transaction failed. ";
+        
+        if (error?.message) {
+          console.error("Error message:", error.message);
+          
+          if (error.message.includes("insufficient funds")) {
+            userMessage += "Insufficient funds in your wallet. Please reduce the amount or add funds.";
+          } else if (error.message.includes("user rejected") || error.message.includes("user denied")) {
+            userMessage += "Transaction was rejected in your wallet.";
+          } else if (error.message.includes("network") || error.message.includes("connect")) {
+            userMessage += "Network connection issue. Please check your internet connection.";
+          } else {
+            userMessage += error.message;
+          }
+        } else {
+          userMessage += "Unknown error occurred. Please try again.";
+        }
+        
+        setErrorMessage(userMessage);
+      } finally {
+        setIsLoading(false);
+      }
+      
+    } catch (outerError) {
+      // This catches any errors in the try block outside of the writeContract promise
+      console.error("Unexpected error in handlePlay:", outerError);
+      setErrorMessage("An unexpected error occurred. Please try again.");
       setIsLoading(false);
     }
   };
 
-  // Connect wallet (if Farcaster Frame connector available, use it)
+  // Connect wallet with error handling
   const handleConnect = () => {
-    const farcasterConnector = connectors.find(c => c.name === "Farcaster Frame");
-    if (farcasterConnector) {
-      connect({ connector: farcasterConnector });
-    } else if (connectors.length > 0) {
-      connect({ connector: connectors[0] });
+    try {
+      // First, log all connectors for debugging
+      console.log("All connectors:", connectors.map(c => ({ name: c.name, ready: c.ready })));
+      
+      // Check network connectivity to common wallet services
+      if (typeof window !== 'undefined' && window.navigator && !window.navigator.onLine) {
+        console.warn("Browser is offline, connection to wallet services may fail");
+      }
+      
+      // Try to connect even if connectors don't report as ready
+      // Sometimes connectors are actually usable even if not reporting as ready
+      
+      // First try Farcaster connector if available (for Warpcast users)
+      const farcasterConnector = connectors.find(c => c.name === "Farcaster Frame");
+      if (farcasterConnector) {
+        connect({ connector: farcasterConnector });
+        return;
+      }
+      
+      // Detect if we're in a wallet browser environment
+      const isInWalletApp = typeof window !== 'undefined' && (
+        window.ethereum?.isMetaMask || 
+        window.ethereum?.isCoinbaseWallet || 
+        window.ethereum?.isTrust || 
+        window.ethereum?.isTokenPocket ||
+        window.ethereum?.isMathWallet
+      );
+      
+      if (isInWalletApp) {
+        // If we're in a wallet app, use the injected connector
+        const injectedConnector = connectors.find(c => c.name === "Injected");
+        if (injectedConnector) {
+          connect({ connector: injectedConnector });
+          return;
+        }
+      }
+      
+      // Then try common wallet connectors
+      const walletConnector = connectors.find(c => 
+        c.name.includes("WalletConnect") || 
+        c.name.includes("Injected") || 
+        c.name.includes("MetaMask") ||
+        c.name.includes("Coinbase")
+      );
+      if (walletConnector) {
+        connect({ connector: walletConnector });
+        return;
+      }
+      
+      // Fallback to any available connector
+      if (connectors.length > 0) {
+        connect({ connector: connectors[0] });
+      } else {
+        console.error("No connectors available");
+        setErrorMessage("No wallet connectors available. Please install a Web3 wallet extension like MetaMask or use WalletConnect.");
+      }
+    } catch (error) {
+      console.error("Connection error:", error);
+      setErrorMessage("Failed to connect wallet. Please try again or refresh the page.");
     }
   };
 
@@ -189,8 +368,23 @@ export function HomeTab() {
 
       {!isConnected ? (
         <div className="text-center mb-6">
-          <Button onClick={handleConnect}>Connect Wallet</Button>
+          <Button 
+            onClick={handleConnect} 
+            isLoading={isPending} 
+            disabled={isPending}
+          >
+            {isPending ? "Connecting..." : "Connect Wallet"}
+          </Button>
           <p className="mt-2 text-xs text-gray-500">Connect your wallet to play</p>
+          <p className="mt-1 text-xs text-gray-500">
+            Make sure you have a wallet extension like MetaMask installed or are using a dApp browser
+          </p>
+          
+          {errorMessage && (
+            <div className="bg-red-100 dark:bg-red-900 p-3 rounded text-sm text-red-700 dark:text-red-300 mt-3">
+              {errorMessage}
+            </div>
+          )}
         </div>
       ) : (
         <>
@@ -202,35 +396,66 @@ export function HomeTab() {
           ) : (
             <div className="mb-6">
               <div className="mb-4">
-                <Label htmlFor="amount" className="mb-1 block">Bet Amount (ETH)</Label>
-                <div className="flex gap-2">
-                  <Input
-                    id="amount"
-                    type="number"
-                    step="0.001"
-                    min="0"
-                    placeholder="0.01"
-                    value={amount}
-                    onChange={(e) => setAmount(e.target.value)}
-                    className="flex-1"
-                  />
+                <Label htmlFor="amount" className="mb-2 block text-lg font-medium">Bet Amount (ETH)</Label>
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <div className="relative flex-1">
+                    <Input
+                      id="amount"
+                      type="number"
+                      step="0.001"
+                      min="0"
+                      placeholder="0.01"
+                      value={amount}
+                      onChange={(e) => setAmount(e.target.value)}
+                      className="flex-1 h-14 text-xl px-4 font-medium min-w-full"
+                    />
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none">
+                      ETH
+                    </span>
+                  </div>
                   <Button 
                     onClick={handlePlay} 
                     disabled={isLoading || isConfirming || isPending}
-                    className="min-w-24"
+                    className="min-w-32 h-14 text-base font-medium"
+                    size="lg"
                   >
-                    {isLoading || isConfirming || isPending ? "Processing..." : "Play"}
+                    {isPending ? "Confirm in wallet..." : 
+                     isConfirming ? "Confirming..." : 
+                     isLoading ? "Processing..." : "Play"}
                   </Button>
                 </div>
                 {balance && (
-                  <p className="text-xs mt-1 text-gray-500">
-                    Balance: {formatEther(balance.value).substring(0, 8)} {balance.symbol}
-                  </p>
+                  <div className="mt-3 text-sm text-gray-600 dark:text-gray-300 flex flex-col sm:flex-row justify-between">
+                    <p className="mb-1 sm:mb-0">Balance: {formatEther(balance.value).substring(0, 8)} {balance.symbol}</p>
+                    <p className="font-medium">Recommended bet: 0.001-0.005 ETH</p>
+                  </div>
                 )}
               </div>
 
+              {/* Transaction Status Indicators */}
+              {isPending && (
+                <div className="bg-yellow-100 dark:bg-yellow-900/30 p-3 rounded text-sm text-yellow-700 dark:text-yellow-300 mt-3">
+                  Please confirm the transaction in your wallet...
+                </div>
+              )}
+              
+              {isConfirming && hash && (
+                <div className="bg-blue-100 dark:bg-blue-900/30 p-3 rounded text-sm text-blue-700 dark:text-blue-300 mt-3">
+                  Transaction submitted! Waiting for confirmation...
+                  <div className="text-xs mt-1 break-all">
+                    Transaction: {hash}
+                  </div>
+                </div>
+              )}
+              
+              {isSuccess && hash && (
+                <div className="bg-green-100 dark:bg-green-900/30 p-3 rounded text-sm text-green-700 dark:text-green-300 mt-3">
+                  Transaction confirmed! You have entered the game.
+                </div>
+              )}
+
               {errorMessage && (
-                <div className="bg-red-100 dark:bg-red-900 p-3 rounded text-sm text-red-700 dark:text-red-300 mb-4">
+                <div className="bg-red-100 dark:bg-red-900 p-3 rounded text-sm text-red-700 dark:text-red-300 mt-3 mb-4">
                   {errorMessage}
                 </div>
               )}

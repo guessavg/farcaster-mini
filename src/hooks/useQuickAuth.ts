@@ -4,18 +4,46 @@ import { useState, useEffect, useCallback } from 'react';
 import { sdk } from '@farcaster/miniapp-sdk';
 
 // Detect if running in a Farcaster environment
-const isFarcasterEnvironment = typeof window !== 'undefined' && 
-  (window.parent !== window || // iframe
-   navigator.userAgent.includes('Warpcast') || // Warpcast app
-   window.location.href.includes('?embedded=true')); // embedded parameter
+const isFarcasterEnvironment = typeof window !== 'undefined' && (
+  window.parent !== window || // iframe
+  (navigator.userAgent && navigator.userAgent.includes('Warpcast')) || // Warpcast app
+  (window.location && window.location.href && window.location.href.includes('?embedded=true')) || // embedded parameter
+  (window.location && window.location.hostname && window.location.hostname === 'localhost') || // Include localhost for development
+  (typeof sdk !== 'undefined' && sdk?.quickAuth !== undefined) // SDK is properly loaded and defined
+);
 
-// Safe access to SDK
+// Safe access to SDK with detailed checks
 const getSdk = () => {
-  if (typeof sdk === 'undefined') {
-    console.error('Farcaster SDK is not defined');
+  try {
+    // Check if SDK is defined at all
+    if (typeof sdk === 'undefined') {
+      console.warn('Farcaster SDK is not defined - this is normal outside of Farcaster environment');
+      return null;
+    }
+    
+    // Check if SDK is an object
+    if (typeof sdk !== 'object' || sdk === null) {
+      console.warn('Farcaster SDK is not a valid object');
+      return null;
+    }
+    
+    // Verify quickAuth is available
+    if (!sdk.quickAuth) {
+      console.warn('Farcaster SDK is missing quickAuth module');
+      return null;
+    }
+    
+    // Verify quickAuth.getToken is a function
+    if (typeof sdk.quickAuth.getToken !== 'function') {
+      console.warn('Farcaster SDK quickAuth.getToken is not a function');
+      return null;
+    }
+    
+    return sdk;
+  } catch (error) {
+    console.warn('Error accessing Farcaster SDK:', error);
     return null;
   }
-  return sdk;
 };
 
 /**
@@ -197,8 +225,16 @@ export function useQuickAuth(): UseQuickAuthReturn {
       }
 
       try {
-        // Get QuickAuth session token with safer access
-        const response = await currentSdk.quickAuth.getToken();
+        // Wrap the SDK call in a try-catch with timeout to prevent hanging
+        const timeoutPromise = new Promise<null>((_, reject) => {
+          setTimeout(() => reject(new Error('QuickAuth getToken timed out')), 5000);
+        });
+        
+        // Race the SDK call with a timeout
+        const response = await Promise.race([
+          currentSdk.quickAuth.getToken(),
+          timeoutPromise
+        ]) as { token: string } | null;
         
         // Handle case where response or response.token might be undefined
         if (!response || !response.token) {
@@ -217,7 +253,15 @@ export function useQuickAuth(): UseQuickAuthReturn {
           return true;
         }
       } catch (sdkError) {
-        console.error('SDK error during authentication:', sdkError);
+        // Handle specific error related to the "reading 'result'" issue
+        if (sdkError instanceof TypeError && 
+            sdkError.message.includes("Cannot read properties of undefined") && 
+            sdkError.message.includes("'result'")) {
+          console.warn('Known QuickAuth issue: Cannot read properties of undefined (reading "result")');
+          console.warn('This usually happens when not running in Warpcast or proper Farcaster environment');
+        } else {
+          console.error('SDK error during authentication:', sdkError);
+        }
         // Continue to the failure case below
       }
 
@@ -251,6 +295,12 @@ export function useQuickAuth(): UseQuickAuthReturn {
    */
   const getToken = useCallback(async (): Promise<string | null> => {
     try {
+      // Check for Farcaster environment first
+      if (!isFarcasterEnvironment) {
+        console.warn('Not in Farcaster environment, authentication not available');
+        return null;
+      }
+      
       // Safely access SDK
       const currentSdk = getSdk();
       if (!currentSdk || !currentSdk.quickAuth) {
@@ -259,18 +309,41 @@ export function useQuickAuth(): UseQuickAuthReturn {
       }
       
       try {
-        // Get token with error handling
-        const response = await currentSdk.quickAuth.getToken();
+        // Wrap the SDK call in a try-catch with timeout to prevent hanging
+        const timeoutPromise = new Promise<null>((_, reject) => {
+          setTimeout(() => reject(new Error('QuickAuth getToken timed out')), 5000);
+        });
         
-        // Handle case where response or response.token might be undefined
-        if (!response || !response.token) {
+        // Race the SDK call with a timeout
+        const response = await Promise.race([
+          currentSdk.quickAuth.getToken(),
+          timeoutPromise
+        ]) as { token: string } | null;
+        
+        // Safety check for response
+        if (!response) {
+          console.warn('QuickAuth returned null response');
+          return null;
+        }
+        
+        // Safety check for token
+        if (!response.token) {
           console.warn('QuickAuth token is undefined or empty');
           return null;
         }
         
         return response.token;
       } catch (sdkError) {
-        // Specific SDK error handling
+        // Handle specific error related to the "reading 'result'" issue
+        if (sdkError instanceof TypeError && 
+            sdkError.message.includes("Cannot read properties of undefined") && 
+            sdkError.message.includes("'result'")) {
+          console.warn('Known QuickAuth issue: Cannot read properties of undefined (reading "result")');
+          console.warn('This usually happens when not running in Warpcast or proper Farcaster environment');
+          return null;
+        }
+        
+        // Other SDK errors
         console.warn('Error accessing QuickAuth token:', sdkError);
         return null;
       }

@@ -13,6 +13,7 @@ import { SignSolanaMessage } from "../wallet/SignSolanaMessage";
 import { SendSolana } from "../wallet/SendSolana";
 import { USE_WALLET, APP_NAME } from "../../../lib/constants";
 import { useMiniApp } from "@neynar/react";
+import { useHasSolanaProvider } from "../../../components/providers/SafeFarcasterSolanaProvider";
 
 /**
  * WalletTab component manages wallet-related UI for both EVM and Solana chains.
@@ -126,8 +127,11 @@ export function WalletTab() {
   const { context } = useMiniApp();
   const { address, isConnected } = useAccount();
   const chainId = useChainId();
+  const hasSolanaProvider = useHasSolanaProvider();
+  // 始终调用 Hook，但可能不使用其结果
   const solanaWallet = useSolanaWallet();
-  const { publicKey: solanaPublicKey } = solanaWallet;
+  // 如果没有 Solana 提供者，则将 publicKey 设置为 null
+  const solanaPublicKey = hasSolanaProvider ? solanaWallet?.publicKey : null;
 
   // --- Wagmi Hooks ---
   const {
@@ -339,11 +343,18 @@ export function WalletTab() {
       )}
 
       {/* Solana Wallet Components */}
-      {solanaPublicKey && (
+      {hasSolanaProvider && solanaPublicKey && (
         <>
-          <SignSolanaMessage signMessage={solanaWallet.signMessage} />
+          <SignSolanaMessage signMessage={solanaWallet?.signMessage} />
           <SendSolana />
         </>
+      )}
+      
+      {/* 显示 Solana 提供者不可用的消息 */}
+      {!hasSolanaProvider && (
+        <div className="bg-yellow-100 dark:bg-yellow-900/30 p-3 rounded text-sm text-yellow-700 dark:text-yellow-300 mt-3">
+          Solana wallet provider not available. Solana features are disabled.
+        </div>
       )}
     </div>
   );

@@ -6,6 +6,7 @@ import { PublicKey, SystemProgram, Transaction } from '@solana/web3.js';
 import { Button } from "../Button";
 import { truncateAddress } from "../../../lib/truncateAddress";
 import { renderError } from "../../../lib/errorUtils";
+import { useHasSolanaProvider } from "../../../components/providers/SafeFarcasterSolanaProvider";
 
 /**
  * SendSolana component handles sending SOL transactions on Solana.
@@ -37,6 +38,7 @@ export function SendSolana() {
     | { status: 'success'; signature: string }
   >({ status: 'none' });
 
+  const hasSolanaProvider = useHasSolanaProvider();
   const { connection: solanaConnection } = useSolanaConnection();
   const { sendTransaction, publicKey } = useSolanaWallet();
 
@@ -90,11 +92,12 @@ export function SendSolana() {
     }
   }, [sendTransaction, publicKey, solanaConnection]);
 
+  // 如果没有 Solana 提供者，则显示禁用状态
   return (
     <>
       <Button
         onClick={sendSolanaTransaction}
-        disabled={solanaTransactionState.status === 'pending'}
+        disabled={!hasSolanaProvider || solanaTransactionState.status === 'pending'}
         isLoading={solanaTransactionState.status === 'pending'}
         className="mb-4"
       >

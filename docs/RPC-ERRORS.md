@@ -10,10 +10,23 @@ When you see an error like this:
 Console InternalRpcError: An internal error was received.
 
 URL: https://eth.merkle.io
-Request body: {"method":"eth_getLogs","params":[{"address":"0x4BbeEa57578E4a078CB8ae4F98C83E45613868D2","topics":["0x64e67454795640f66cef8019a707b9381952f2f1024a355d5470bafc82af1800"],"fromBlock":"0x0","toBlock":"latest"}]}
+Request body: {"method":"eth_getLogs","params":[{"address":"0x4BbeEa57578E4a078CB8ae4F98C83E45613868D2","topics":["0x64e67454795640f66cef8019a707b9381952f2f1024a355d5470bafc82af1800"],"fromBlock":"0x16275fc","toBlock":"latest"}]}
 
 Details: input does not match format
+Version: viem@2.36.0
 ```
+
+## Solution in Guess 2/3 Game
+
+We've implemented several improvements to handle these RPC limitations:
+
+1. **Reduced Block Range**: The application now uses a very small block range (50 blocks) by default when fetching event logs to avoid RPC errors.
+
+2. **User-Configurable Block Range**: Users can adjust the block range in the Event Range Settings section if they want to see more historical data or continue to encounter RPC errors.
+
+3. **Improved Error Handling**: If an RPC error occurs, the application will display a more user-friendly error message with suggestions.
+
+4. **Error Recovery**: The application will attempt a retry with an even smaller range if the initial request fails.
 
 ### What Causes This Error?
 

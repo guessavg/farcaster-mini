@@ -31,9 +31,9 @@ export const config = createConfig({
   // Include Base and mainnet for wider compatibility
   chains: [CHAIN, mainnet],
   transports: {
-    [base.id]: http(),
-    [baseSepolia.id]: http(),
-    [mainnet.id]: http()
+    [base.id]: http('https://mainnet.base.org'),
+    [baseSepolia.id]: http('https://sepolia.base.org'), 
+    [mainnet.id]: http('https://eth.merkle.io')
   },
   connectors: [
     // Farcaster Mini App connector should be first for best experience in Warpcast

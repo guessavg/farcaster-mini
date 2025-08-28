@@ -36,8 +36,7 @@ export function HomeTab() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [players, setPlayers] = useState<{ address: string; amount: bigint }[]>([]);
   const [isLoadingPlayers, setIsLoadingPlayers] = useState(false);
-  // We're using players.length instead of playerCount to display the count
-  const [_playerCount, setPlayerCount] = useState(0); // Prefix with _ to indicate it's intentionally unused
+  const [playerCount, setPlayerCount] = useState(0);
   const [blockRange, setBlockRange] = useState<bigint>(50n); // Default to 50 blocks
 
   // Wallet connection
@@ -724,7 +723,7 @@ export function HomeTab() {
       {/* Social Sharing */}
       <div className="mt-8 text-center">
         <h3 className="text-sm font-semibold mb-2">Share with friends</h3>
-        <Share text={`Join me in the Guess 2/3 Game on ${APP_NAME}!`} />
+        <Share message={`Join me in the Guess 2/3 Game on ${APP_NAME}!`} />
       </div>
     </div>
   );

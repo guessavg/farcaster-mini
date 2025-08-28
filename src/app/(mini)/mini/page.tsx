@@ -4,7 +4,8 @@ import { useAccount, useConnect, useReadContract, useWriteContract } from 'wagmi
 import { formatEther, parseEther } from 'viem'
 import { guess23Abi } from '@/lib/abi'
 
-const CONTRACT = process.env.NEXT_PUBLIC_CONTRACT as `0x${string}`
+// Base mainnet contract address
+const CONTRACT = "0x4BbeE9F876ff56832E724DC9a7bD06538C8868D2" as `0x${string}`
 
 export default function GamePage() {
   const { isConnected, address } = useAccount()

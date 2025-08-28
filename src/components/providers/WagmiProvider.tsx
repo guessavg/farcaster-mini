@@ -9,7 +9,10 @@ declare global {
   }
 }
 
-// Custom hook for Coinbase Wallet detection and auto-connection
+// Base chain ID
+const BASE_CHAIN_ID = 8453; // Base mainnet
+
+// Custom hook for Coinbase Wallet detection, auto-connection and network switching
 function useCoinbaseWalletAutoConnect() {
   const [isCoinbaseWallet, setIsCoinbaseWallet] = useState(false);
   const { connect, connectors } = useConnect();
@@ -31,6 +34,55 @@ function useCoinbaseWalletAutoConnect() {
       window.removeEventListener('ethereum#initialized', checkCoinbaseWallet);
     };
   }, []);
+
+  // Auto switch to Base network
+  useEffect(() => {
+    const switchToBaseNetwork = async () => {
+      if (!window.ethereum) return;
+      
+      try {
+        // Try to switch to Base network
+        await window.ethereum.request({
+          method: 'wallet_switchEthereumChain',
+          params: [{ chainId: `0x${BASE_CHAIN_ID.toString(16)}` }], // Convert to hex
+        });
+        console.log('Successfully switched to Base network');
+      } catch (switchError: any) {
+        // This error code indicates that the chain has not been added to MetaMask
+        if (switchError.code === 4902) {
+          try {
+            // Add Base network to the wallet
+            await window.ethereum.request({
+              method: 'wallet_addEthereumChain',
+              params: [
+                {
+                  chainId: `0x${BASE_CHAIN_ID.toString(16)}`,
+                  chainName: 'Base',
+                  nativeCurrency: {
+                    name: 'ETH',
+                    symbol: 'ETH',
+                    decimals: 18,
+                  },
+                  rpcUrls: ['https://mainnet.base.org'],
+                  blockExplorerUrls: ['https://basescan.org'],
+                },
+              ],
+            });
+            console.log('Base network added to wallet');
+          } catch (addError) {
+            console.error('Failed to add Base network:', addError);
+          }
+        } else {
+          console.error('Failed to switch to Base network:', switchError);
+        }
+      }
+    };
+
+    // If wallet is connected, try to switch to Base network
+    if (isConnected && window.ethereum) {
+      switchToBaseNetwork();
+    }
+  }, [isConnected]);
 
   useEffect(() => {
     // Auto-connect if in Coinbase Wallet and not already connected

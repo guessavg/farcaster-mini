@@ -31,7 +31,7 @@ const CONTRACT_ADDRESS = "0x4BbeE9F876ff56832E724DC9a7bD06538C8868D2"; // Base c
  */
 export function HomeTab() {
   // State
-  const [amount, setAmount] = useState("");
+  const [amountGwei, setAmountGwei] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [players, setPlayers] = useState<{ address: string; amount: bigint }[]>([]);
@@ -265,26 +265,26 @@ export function HomeTab() {
   }, [publicClient, isConnected, gameId, blockRange]);
 
   // 定义直接使用 window.ethereum 发送交易的函数
-  const sendTransactionDirectly = async (ethAmount: string) => {
+  const sendTransactionDirectly = async (gweiAmount: string) => {
     if (!window.ethereum) {
       throw new Error("No wallet detected. Please install MetaMask or another wallet.");
     }
     
     try {
-      // 将ETH数量转换为Wei
-      const weiValue = parseEther(ethAmount).toString();
+      // 将Gwei数量转换为Wei (1 Gwei = 10^9 Wei)
+      const weiValue = (BigInt(parseInt(gweiAmount)) * BigInt(1e9)).toString();
       
       // 获取当前账户
       const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
       const account = accounts[0];
       
-      console.log(`直接向合约发送交易: ${ethAmount} ETH, 从: ${account}`);
+      console.log(`直接向合约发送交易: ${gweiAmount} Gwei (${formatEther(BigInt(weiValue))} ETH), 从: ${account}`);
       
       // 创建交易参数
       const txParams = {
         from: account,
         to: CONTRACT_ADDRESS,
-        value: `0x${parseInt(weiValue).toString(16)}`, // 转换为十六进制
+        value: `0x${BigInt(weiValue).toString(16)}`, // 转换为十六进制
         data: '0x92d98a65', // play() 函数的签名
       };
       
@@ -316,14 +316,26 @@ export function HomeTab() {
         return;
       }
       
-      if (!amount || isNaN(parseFloat(amount)) || parseFloat(amount) <= 0) {
-        setErrorMessage("Please enter a valid amount");
+      if (!amountGwei || isNaN(parseInt(amountGwei)) || parseInt(amountGwei) <= 0) {
+        setErrorMessage("Please enter a valid amount in Gwei");
         return;
       }
       
+      // Make sure user is on Base network before placing bet
+      if (window.ethereum) {
+        const networkSwitched = await switchToBaseNetwork();
+        if (!networkSwitched) {
+          setErrorMessage("You must be on the Base network to play this game");
+          return;
+        }
+      }
+      
+      // Convert Gwei to ETH for balance check
+      const amountWei = BigInt(parseInt(amountGwei)) * BigInt(1e9); // Convert Gwei to Wei
+      
       // Check if user has sufficient balance
-      if (balance && parseEther(amount) > balance.value) {
-        setErrorMessage(`Insufficient balance. You have ${formatEther(balance.value)} ETH, but trying to bet ${amount} ETH.`);
+      if (balance && amountWei > balance.value) {
+        setErrorMessage(`Insufficient balance. You have ${formatEther(balance.value)} ETH, but trying to bet ${formatEther(amountWei)} ETH.`);
         return;
       }
       
@@ -332,13 +344,16 @@ export function HomeTab() {
       
       // Try wagmi contract write first
       try {
-        console.log("Attempting to place bet with contract write:", amount);
+        console.log("Attempting to place bet with contract write:", amountGwei, "Gwei");
+        
+        // Convert Gwei to Wei for the transaction
+        const amountWei = BigInt(parseInt(amountGwei)) * BigInt(1e9); // 1 Gwei = 10^9 Wei
         
         writeContract({
           address: CONTRACT_ADDRESS as `0x${string}`,
           abi: guess23Abi,
           functionName: "play",
-          value: parseEther(amount),
+          value: amountWei,
         });
       } catch (writeErr: any) {
         console.error("Contract write failed:", writeErr);
@@ -352,7 +367,7 @@ export function HomeTab() {
         // Fallback to direct transaction method
         try {
           console.log("Falling back to direct ethereum transaction");
-          await sendTransactionDirectly(amount);
+          await sendTransactionDirectly(amountGwei);
         } catch (directTxError: any) {
           console.error("Direct transaction failed:", directTxError);
           setErrorMessage("Contract interaction not available. Please refresh and try again.");
@@ -383,9 +398,80 @@ export function HomeTab() {
     }
   };
 
+  // Function to switch to Base network
+  const switchToBaseNetwork = async () => {
+    if (!window.ethereum) {
+      setErrorMessage("No wallet detected. Please install MetaMask or use another Web3 wallet.");
+      return false;
+    }
+    
+    const BASE_CHAIN_ID = 8453; // Base mainnet
+    
+    try {
+      // Try to switch to Base network
+      await window.ethereum.request({
+        method: 'wallet_switchEthereumChain',
+        params: [{ chainId: `0x${BASE_CHAIN_ID.toString(16)}` }], // Convert to hex
+      });
+      console.log('Successfully switched to Base network');
+      return true;
+    } catch (switchError: any) {
+      // This error code indicates that the chain has not been added to MetaMask
+      if (switchError.code === 4902) {
+        try {
+          // Add Base network to the wallet
+          await window.ethereum.request({
+            method: 'wallet_addEthereumChain',
+            params: [
+              {
+                chainId: `0x${BASE_CHAIN_ID.toString(16)}`,
+                chainName: 'Base',
+                nativeCurrency: {
+                  name: 'ETH',
+                  symbol: 'ETH',
+                  decimals: 18,
+                },
+                rpcUrls: ['https://mainnet.base.org'],
+                blockExplorerUrls: ['https://basescan.org'],
+              },
+            ],
+          });
+          console.log('Base network added to wallet');
+          
+          // Try switching again after adding
+          await window.ethereum.request({
+            method: 'wallet_switchEthereumChain',
+            params: [{ chainId: `0x${BASE_CHAIN_ID.toString(16)}` }],
+          });
+          return true;
+        } catch (addError) {
+          console.error('Failed to add Base network:', addError);
+          setErrorMessage("Failed to add Base network. Please add it manually in your wallet.");
+          return false;
+        }
+      } else if (switchError.code === 4001) {
+        // User rejected the request
+        setErrorMessage("You rejected the request to switch to Base network. This game requires Base network.");
+        return false;
+      } else {
+        console.error('Failed to switch to Base network:', switchError);
+        setErrorMessage("Failed to switch to Base network. Please try again or switch manually.");
+        return false;
+      }
+    }
+  };
+
   // Handle wallet connection
   const handleConnect = async () => {
     try {
+      // First try to switch to Base network if wallet is already available
+      if (window.ethereum) {
+        const networkSwitched = await switchToBaseNetwork();
+        if (!networkSwitched) {
+          return; // Don't proceed if network switch failed
+        }
+      }
+      
       // Find an available connector
       const connector = connectors.find(c => c.ready);
       
@@ -405,10 +491,13 @@ export function HomeTab() {
     <div className="max-w-2xl mx-auto px-4 py-8">
       <h2 className="text-2xl font-bold mb-4 text-center">Guess 2/3 of the Average Game</h2>
       <p className="mb-2 text-sm text-purple-200 text-center">
-        Bet ETH to enter the mathematical mind game! The player closest to 2/3 of the average bet wins all ETH.
+        Bet Gwei to enter the mathematical mind game! The player closest to 2/3 of the average bet wins the entire pot.
       </p>
-      <p className="mb-8 text-xs text-purple-300/70 text-center">
+      <p className="mb-2 text-xs text-purple-300/70 text-center">
         Current parameters: Small rounds (min=2, max=3 players) | Game completes quickly!
+      </p>
+      <p className="mb-8 text-xs bg-blue-900/20 text-blue-300 py-1 px-2 rounded-md mx-auto max-w-sm text-center border border-blue-800/30">
+        <span className="font-medium">Note:</span> This game runs exclusively on Base network
       </p>
 
       {/* Game Rules */}
@@ -416,11 +505,11 @@ export function HomeTab() {
         <h3 className="font-semibold mb-2 text-purple-300">How to Play</h3>
         <ol className="list-decimal pl-5 text-sm text-gray-200">
           <li className="mb-1">Connect your wallet with ETH to enter</li>
-          <li className="mb-1">Send any amount of ETH from 0.01 to 1.00 as your bet</li>
+          <li className="mb-1">Enter a whole number of Gwei (1 Gwei = 0.000000001 ETH)</li>
           <li className="mb-1">Game ends automatically after 2-3 players join</li>
           <li className="mb-1">The closest guess to ⅔ of the average wins the entire pot!</li>
         </ol>
-        <p className="text-xs mt-2 text-purple-300">Strategy: Your ETH amount (e.g., 0.42 ETH) = your guess of what 2/3 of the average will be</p>
+        <p className="text-xs mt-2 text-purple-300">Strategy: Your bet in Gwei (e.g., 1000 Gwei) = your prediction of what 2/3 of the average will be</p>
       </div>
       
       {/* Wallet Connection / Betting Interface */}
@@ -467,19 +556,19 @@ export function HomeTab() {
               <h3 className="font-semibold mb-4 text-purple-200">Step 2: Place Your Bet</h3>
               <div className="space-y-4">
                 <div>
-                  <Label htmlFor="amount">Your Bet Amount (ETH) = Your Prediction</Label>
+                  <Label htmlFor="amount">Your Bet Amount (Gwei) = Your Prediction</Label>
                   <Input
                     id="amount"
-                    value={amount}
-                    onChange={(e) => setAmount(e.target.value)}
-                    placeholder="0.01"
+                    value={amountGwei}
+                    onChange={(e) => setAmountGwei(e.target.value.replace(/\D/g, ''))} // Only allow integers
+                    placeholder="1000"
                     type="number"
-                    min="0.000001"
-                    step="0.01"
+                    min="1"
+                    step="1"
                     disabled={isLoading || isPending || isConfirming}
                   />
                   <p className="mt-1 text-xs text-purple-300">
-                    Choose between 0.01-1.00 ETH. Think strategically - game ends after 2-3 players!
+                    Enter whole numbers only (1 Gwei = 0.000000001 ETH). Think strategically - game ends after 2-3 players!
                   </p>
                 </div>
                 
@@ -490,7 +579,7 @@ export function HomeTab() {
                       ? "bg-gray-700 cursor-not-allowed"
                       : "bg-gradient-to-r from-purple-800 to-purple-600 hover:from-purple-700 hover:to-purple-500"
                   } text-white font-medium py-3 px-4 rounded-lg relative overflow-hidden transition-all duration-200 hover:shadow-lg hover:shadow-purple-700/30`}
-                  disabled={isLoading || isPending || isConfirming || !amount}
+                  disabled={isLoading || isPending || isConfirming || !amountGwei}
                 >
                   <span className={isLoading || isPending || isConfirming ? "" : "glow-sm"}>
                     {isLoading || isPending
@@ -507,7 +596,8 @@ export function HomeTab() {
                 
                 {balance && (
                   <p className="text-xs text-purple-300">
-                    Available balance: <span className="text-green-300 font-medium">{formatEther(balance?.value).substring(0, 8)} ETH</span>
+                    Available balance: <span className="text-green-300 font-medium">{formatEther(balance?.value).substring(0, 8)} ETH</span> 
+                    <span className="text-xs text-purple-300/70"> ≈ {Math.floor(Number(formatEther(balance?.value)) * 1e9).toLocaleString()} Gwei</span>
                   </p>
                 )}
               </div>
@@ -545,7 +635,7 @@ export function HomeTab() {
               <p className="text-xs text-purple-400 mb-1">Total Pot</p>
               <div className="flex items-center">
                 {isConnected ? (
-                  <p className="font-medium text-white">{totalAmount ? <span className="text-green-300 glow-sm">{formatEther(totalAmount).substring(0, 8)} ETH</span> : <span className="text-purple-400/70">Loading...</span>}</p>
+                  <p className="font-medium text-white">{totalAmount ? <span className="text-green-300 glow-sm">{(totalAmount / BigInt(1e9)).toString()} Gwei</span> : <span className="text-purple-400/70">Loading...</span>}</p>
                 ) : (
                   <p className="text-sm text-amber-600 dark:text-amber-400">Connect wallet to view</p>
                 )}
@@ -633,7 +723,7 @@ export function HomeTab() {
                         {event.args.winner.substring(0, 6)}...{event.args.winner.substring(38)}
                       </td>
                       <td className="px-3 py-2 whitespace-nowrap text-xs text-right">
-                        {formatEther(event.args.reward).substring(0, 8)} ETH
+                        {(event.args.reward / BigInt(1e9)).toString()} Gwei
                       </td>
                     </tr>
                   ))}
@@ -739,7 +829,7 @@ export function HomeTab() {
                       {player.address.substring(0, 6)}...{player.address.substring(38)}
                     </td>
                     <td className="px-3 py-2.5 whitespace-nowrap text-xs text-right text-green-300">
-                      {formatEther(player.amount).substring(0, 8)} ETH
+                      {(player.amount / BigInt(1e9)).toString()} Gwei
                     </td>
                   </tr>
                 ))}
@@ -762,7 +852,7 @@ export function HomeTab() {
       {/* Social Sharing */}
       <div className="mt-8 text-center">
         <h3 className="text-sm font-semibold mb-2 text-purple-300">Challenge your friends</h3>
-        <Share text={`Play the mathematical mind game! Guess 2/3 of the average and win ETH on ${APP_NAME} v0.0.1 🧠💰`} />
+        <Share text={`Play the mathematical mind game! Guess 2/3 of the average in Gwei and win the pot on ${APP_NAME} v0.0.1 🧠💰`} />
       </div>
       
       {/* Contract Transparency */}

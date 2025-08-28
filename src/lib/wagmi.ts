@@ -4,9 +4,8 @@ import { base, baseSepolia, mainnet } from 'wagmi/chains'
 import { farcasterMiniApp as miniAppConnector } from '@farcaster/miniapp-wagmi-connector'
 import { coinbaseWallet, injected, walletConnect } from 'wagmi/connectors'
 
-// Default to Base mainnet unless specified otherwise in environment
-const CHAIN_ID = Number(process.env.NEXT_PUBLIC_CHAIN_ID || 8453)
-const CHAIN = CHAIN_ID === baseSepolia.id ? baseSepolia : base
+// Using Base mainnet
+const CHAIN = base
 
 // WalletConnect projectId - you should get your own from https://cloud.walletconnect.com/
 const WALLET_CONNECT_PROJECT_ID = process.env.NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID || '3a8170812b534d0ff9d794f19a901d64'

@@ -2,9 +2,7 @@
 
 import { useEffect } from "react";
 import { useMiniApp } from "@neynar/react";
-import { Header } from "~/components/ui/Header";
 import { HomeTab } from "~/components/ui/tabs";
-import { useNeynarUser } from "../hooks/useNeynarUser";
 
 // --- Types ---
 export enum Tab {
@@ -57,9 +55,6 @@ export default function App(
     setInitialTab,
   } = useMiniApp();
 
-  // --- Neynar user hook ---
-  const { user: neynarUser } = useNeynarUser(context || undefined);
-
   // --- Effects ---
   /**
    * Sets the initial tab to "home" when the SDK is loaded.
@@ -96,13 +91,10 @@ export default function App(
         paddingRight: context?.client.safeAreaInsets?.right ?? 0,
       }}
     >
-      {/* Header should be full width */}
-      <Header neynarUser={neynarUser} />
-
       {/* Main content should be centered */}
-      <div className="container py-2 pb-8">
+      <div className="container py-4 pb-8">
         {/* Main title */}
-        <h1 className="text-2xl font-bold text-center mb-4">Guess 2/3 Game</h1>
+        <h1 className="text-3xl font-bold text-center mb-6">Guess 2/3 Game</h1>
 
         {/* Always render HomeTab */}
         <HomeTab />

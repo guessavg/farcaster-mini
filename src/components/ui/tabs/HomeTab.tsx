@@ -34,6 +34,9 @@ export function HomeTab() {
   const [amount, setAmount] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [players, setPlayers] = useState<{ address: string; amount: bigint }[]>([]);
+  const [isLoadingPlayers, setIsLoadingPlayers] = useState(false);
+  const [playerCount, setPlayerCount] = useState(0);
 
   // Wallet connection
   const { address, isConnected } = useAccount();
@@ -98,46 +101,84 @@ export function HomeTab() {
   const [gameEvents, setGameEvents] = useState<any[]>([]);
   const [lastWinner, setLastWinner] = useState<any>(null);
 
-  // Fetch game events - separated from wallet connection
+  // Fetch game events and player information
   useEffect(() => {
-    // Skip event fetching on initial load to prevent blocking wallet connection
-    const shouldFetchEvents = publicClient && isConnected;
-    if (!shouldFetchEvents) return;
+    // Skip fetching on initial load to prevent blocking wallet connection
+    const shouldFetch = publicClient && isConnected;
+    if (!shouldFetch) return;
     
-    const fetchEvents = async () => {
+    const fetchGameData = async () => {
       try {
-        // Get only the most recent events with a very limited block range
-        // This significantly reduces the chance of RPC errors
-        const blockNumber = await publicClient.getBlockNumber();
-        // Use only last 1000 blocks (approximately 3 hours of blocks)
-        const startBlock = blockNumber > 1000n ? blockNumber - 1000n : 0n;
+        // Start loading indicators
+        setIsLoadingPlayers(true);
         
-        const endEvents = await publicClient.getContractEvents({
-          address: CONTRACT_ADDRESS as `0x${string}`,
-          abi: guess23Abi,
-          eventName: 'GameEnded',
-          fromBlock: startBlock,
-          toBlock: 'latest'
-        });
+        // Get block number for event queries
+        const blockNumber = await publicClient.getBlockNumber();
+        // Use a reasonable block range to avoid RPC errors
+        const startBlock = blockNumber > 100000n ? blockNumber - 100000n : blockNumber - 10000n;
+        
+        // 1. Fetch recent game events (winners)
+        try {
+          const endEvents = await publicClient.getContractEvents({
+            address: CONTRACT_ADDRESS as `0x${string}`,
+            abi: guess23Abi,
+            eventName: 'GameEnded',
+            fromBlock: startBlock,
+            toBlock: 'latest'
+          });
 
-        if (endEvents && endEvents.length > 0) {
-          setLastWinner(endEvents[endEvents.length - 1]);
-          setGameEvents(endEvents);
+          if (endEvents && endEvents.length > 0) {
+            console.log(`Successfully fetched ${endEvents.length} game end events`);
+            setLastWinner(endEvents[endEvents.length - 1]);
+            setGameEvents(endEvents);
+          }
+        } catch (eventError) {
+          console.error("Error fetching game end events:", eventError);
         }
+        
+        // 2. Fetch recent player join events
+        try {
+          const joinEvents = await publicClient.getContractEvents({
+            address: CONTRACT_ADDRESS as `0x${string}`,
+            abi: guess23Abi,
+            eventName: 'PlayerJoined',
+            fromBlock: startBlock,
+            toBlock: 'latest'
+          });
+
+          if (joinEvents && joinEvents.length > 0) {
+            console.log(`Successfully fetched ${joinEvents.length} player join events`);
+            
+            // Process player data from events
+            const playerData = joinEvents.map(event => ({
+              address: event.args.player as string,
+              amount: event.args.amount as bigint
+            }));
+            
+            // Set player count and data
+            setPlayerCount(playerData.length);
+            setPlayers(playerData);
+          }
+        } catch (playerError) {
+          console.error("Error fetching player events:", playerError);
+        }
+        
       } catch (error) {
-        console.error("Error fetching events:", error);
-        // Don't attempt fallback, just continue with the app
-        // Events are non-critical for core functionality
+        console.error("Error fetching game data:", error);
+      } finally {
+        setIsLoadingPlayers(false);
       }
     };
 
     // Wrap in try/catch to ensure UI doesn't get blocked
     try {
-      fetchEvents().catch(err => {
-        console.error("Failed to fetch events:", err);
+      fetchGameData().catch(err => {
+        console.error("Failed to fetch game data:", err);
+        setIsLoadingPlayers(false);
       });
     } catch (e) {
-      console.error("Event fetching wrapper error:", e);
+      console.error("Game data fetching error:", e);
+      setIsLoadingPlayers(false);
     }
   }, [publicClient, isConnected, gameId]);
 
@@ -394,11 +435,11 @@ export function HomeTab() {
               <p className="text-sm mt-2">Wait for the game to end to see results.</p>
             </div>
           ) : (
-            <div className="mb-6">
+            <div className="mb-6 mx-auto max-w-xl w-full">
               <div className="mb-4">
                 <Label htmlFor="amount" className="mb-2 block text-lg font-medium">Bet Amount (ETH)</Label>
                 <div className="flex flex-col sm:flex-row gap-3">
-                  <div className="relative flex-1">
+                  <div className="relative flex-1 max-w-full w-full">
                     <Input
                       id="amount"
                       type="number"
@@ -407,7 +448,7 @@ export function HomeTab() {
                       placeholder="0.01"
                       value={amount}
                       onChange={(e) => setAmount(e.target.value)}
-                      className="flex-1 h-14 text-xl px-4 font-medium min-w-full"
+                      className="h-14 text-xl px-4 font-medium w-full"
                     />
                     <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none">
                       ETH
@@ -416,7 +457,7 @@ export function HomeTab() {
                   <Button 
                     onClick={handlePlay} 
                     disabled={isLoading || isConfirming || isPending}
-                    className="min-w-32 h-14 text-base font-medium"
+                    className="sm:min-w-32 w-full sm:w-auto h-14 text-base font-medium"
                     size="lg"
                   >
                     {isPending ? "Confirm in wallet..." : 
@@ -464,28 +505,109 @@ export function HomeTab() {
         </>
       )}
 
-      {/* Game History */}
-      <div className="border-t border-gray-200 dark:border-gray-700 pt-4 mt-6">
-        <h3 className="font-semibold mb-3">Recent Winners</h3>
-        
-        {lastWinner && (
-          <div className="bg-yellow-50 dark:bg-yellow-900/20 p-3 rounded-lg mb-4">
-            <p className="text-sm font-medium">Last Winner: {lastWinner.args.winner.substring(0, 6)}...{lastWinner.args.winner.substring(38)}</p>
-            <p className="text-xs">Won {lastWinner.args.reward ? formatEther(lastWinner.args.reward).substring(0, 8) : "0"} ETH</p>
-            <p className="text-xs">Target: {lastWinner.args.guessTarget ? formatEther(lastWinner.args.guessTarget).substring(0, 8) : "0"} ETH</p>
+      {/* Game History and Player Records */}
+      <div className="border-t border-gray-200 dark:border-gray-700 pt-4 mt-6 mx-auto max-w-2xl">
+        {/* Current Game Status */}
+        <div className="mb-6">
+          <h3 className="font-semibold mb-3">Current Game Status</h3>
+          <div className="grid grid-cols-2 gap-2">
+            <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg">
+              <p className="text-xs text-gray-500">Game ID</p>
+              <p className="font-medium">{gameId ? gameId.toString() : 'Loading...'}</p>
+            </div>
+            <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg">
+              <p className="text-xs text-gray-500">Total Pot</p>
+              <p className="font-medium">{totalAmount ? `${formatEther(totalAmount).substring(0, 8)} ETH` : 'Loading...'}</p>
+            </div>
           </div>
+        </div>
+        
+        {/* Last Winner */}
+        <h3 className="font-semibold mb-3">Recent Winner</h3>
+        {lastWinner ? (
+          <div className="bg-yellow-50 dark:bg-yellow-900/20 p-3 rounded-lg mb-4">
+            <div className="flex justify-between items-center">
+              <p className="text-sm font-medium">Winner: {lastWinner.args.winner.substring(0, 6)}...{lastWinner.args.winner.substring(38)}</p>
+              <p className="text-xs bg-green-100 dark:bg-green-900/30 px-2 py-1 rounded">Game #{lastWinner.args.gameId?.toString()}</p>
+            </div>
+            <p className="text-xs mt-1">Won {lastWinner.args.reward ? formatEther(lastWinner.args.reward).substring(0, 8) : "0"} ETH</p>
+            <p className="text-xs">Target Bet: {lastWinner.args.guessTarget ? formatEther(lastWinner.args.guessTarget).substring(0, 8) : "0"} ETH</p>
+          </div>
+        ) : (
+          <p className="text-sm text-gray-500 mb-4">No winner information available</p>
         )}
         
-        {gameEvents.length === 0 && (
-          <p className="text-sm text-gray-500">No game history yet</p>
+        {/* Winner History */}
+        {gameEvents.length > 1 && (
+          <>
+            <h3 className="font-semibold mb-3 mt-4">Winner History</h3>
+            <div className="overflow-hidden border border-gray-200 dark:border-gray-700 rounded-lg">
+              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                <thead className="bg-gray-50 dark:bg-gray-800">
+                  <tr>
+                    <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400">Game</th>
+                    <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400">Winner</th>
+                    <th scope="col" className="px-3 py-2 text-right text-xs font-medium text-gray-500 dark:text-gray-400">Reward</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
+                  {gameEvents.slice(0, 5).map((event, index) => (
+                    <tr key={index}>
+                      <td className="px-3 py-2 whitespace-nowrap text-xs">
+                        #{event.args.gameId?.toString()}
+                      </td>
+                      <td className="px-3 py-2 whitespace-nowrap text-xs">
+                        {event.args.winner.substring(0, 6)}...{event.args.winner.substring(38)}
+                      </td>
+                      <td className="px-3 py-2 whitespace-nowrap text-xs text-right">
+                        {formatEther(event.args.reward).substring(0, 8)} ETH
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
+        )}
+        
+        {/* Player Records */}
+        <h3 className="font-semibold mb-3 mt-6">Player Records</h3>
+        {isLoadingPlayers ? (
+          <div className="flex justify-center my-4">
+            <div className="animate-spin h-5 w-5 border-2 border-primary border-t-transparent rounded-full"></div>
+          </div>
+        ) : players.length > 0 ? (
+          <div className="overflow-hidden border border-gray-200 dark:border-gray-700 rounded-lg">
+            <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+              <thead className="bg-gray-50 dark:bg-gray-800">
+                <tr>
+                  <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400">Player</th>
+                  <th scope="col" className="px-3 py-2 text-right text-xs font-medium text-gray-500 dark:text-gray-400">Amount</th>
+                </tr>
+              </thead>
+              <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
+                {players.map((player, index) => (
+                  <tr key={index}>
+                    <td className="px-3 py-2 whitespace-nowrap text-xs">
+                      {player.address.substring(0, 6)}...{player.address.substring(38)}
+                    </td>
+                    <td className="px-3 py-2 whitespace-nowrap text-xs text-right">
+                      {formatEther(player.amount).substring(0, 8)} ETH
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <p className="text-sm text-gray-500">No player records available</p>
         )}
 
-        {gameEvents.length > 0 && (
-          <div className="mt-4">
-            <p className="text-xs text-center mb-4">Share this game with your friends!</p>
-            <Share text={`Play the "Guess 2/3 of the Average" game on ${APP_NAME}!`} />
-          </div>
-        )}
+        {/* Share Button */}
+        <div className="mt-6">
+          <p className="text-xs text-center mb-4">Share this game with your friends!</p>
+          <Share text={`Play the "Guess 2/3 of the Average" game on ${APP_NAME}!`} />
+        </div>
       </div>
     </div>
   );

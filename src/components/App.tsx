@@ -4,8 +4,7 @@ import { useEffect } from "react";
 import { useMiniApp } from "@neynar/react";
 import { Header } from "~/components/ui/Header";
 import { Footer } from "~/components/ui/Footer";
-import { HomeTab, ActionsTab, ContextTab, WalletTab } from "~/components/ui/tabs";
-import { USE_WALLET } from "~/lib/constants";
+import { HomeTab } from "~/components/ui/tabs";
 import { useNeynarUser } from "../hooks/useNeynarUser";
 
 // --- Types ---
@@ -50,7 +49,7 @@ export interface AppProps {
  * ```
  */
 export default function App(
-  { title }: AppProps = { title: "Neynar Starter Kit" }
+  _props: AppProps = { title: "Guess 2/3 Game" }
 ) {
   // --- Hooks ---
   const {
@@ -58,7 +57,6 @@ export default function App(
     context,
     setInitialTab,
     setActiveTab,
-    currentTab,
   } = useMiniApp();
 
   // --- Neynar user hook ---
@@ -106,16 +104,13 @@ export default function App(
       {/* Main content and footer should be centered */}
       <div className="container py-2 pb-20">
         {/* Main title */}
-        <h1 className="text-2xl font-bold text-center mb-4">{title}</h1>
+        <h1 className="text-2xl font-bold text-center mb-4">Guess 2/3 Game</h1>
 
-        {/* Tab content rendering */}
-        {currentTab === Tab.Home && <HomeTab />}
-        {currentTab === Tab.Actions && <ActionsTab />}
-        {currentTab === Tab.Context && <ContextTab />}
-        {currentTab === Tab.Wallet && <WalletTab />}
+        {/* Always render HomeTab */}
+        <HomeTab />
 
-        {/* Footer with navigation */}
-        <Footer activeTab={currentTab as Tab} setActiveTab={setActiveTab} showWallet={USE_WALLET} />
+        {/* Simplified Footer */}
+        <Footer setActiveTab={setActiveTab} />
       </div>
     </div>
   );

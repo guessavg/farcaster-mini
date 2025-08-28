@@ -7,9 +7,7 @@ import { formatEther } from "viem";
 import { Button } from "../Button";
 import { Input } from "../input";
 import { Label } from "../label";
-import { Share } from "../Share";
 import { guess23Abi } from "~/lib/abi";
-import { APP_NAME } from "~/lib/constants";
 
 // Default contract address - update with your deployed contract address
 const CONTRACT_ADDRESS = "0x4BbeE9F876ff56832E724DC9a7bD06538C8868D2"; // Base contract
@@ -986,12 +984,6 @@ export function HomeTab() {
             </div>
           </div>
         )}
-      </div>
-      
-      {/* Social Sharing */}
-      <div className="mt-8 text-center">
-        <h3 className="text-sm font-semibold mb-2 text-purple-300">Challenge your friends</h3>
-        <Share text={`Play the mathematical mind game! Guess 2/3 of the average in Gwei and win the pot on ${APP_NAME} v0.0.1 🧠💰`} />
       </div>
       
       {/* Contract Transparency */}

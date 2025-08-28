@@ -394,7 +394,7 @@ export function HomeTab() {
   };
 
   return (
-    <div className="px-4 py-2">
+    <div className="px-4 py-2 pb-10">
       <div className="text-center mb-6">
         <h2 className="text-xl font-bold mb-2">Guess 2/3 of the Average</h2>
         <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">

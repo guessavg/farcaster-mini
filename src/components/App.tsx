@@ -3,7 +3,6 @@
 import { useEffect } from "react";
 import { useMiniApp } from "@neynar/react";
 import { Header } from "~/components/ui/Header";
-import { Footer } from "~/components/ui/Footer";
 import { HomeTab } from "~/components/ui/tabs";
 import { useNeynarUser } from "../hooks/useNeynarUser";
 
@@ -56,7 +55,6 @@ export default function App(
     isSDKLoaded,
     context,
     setInitialTab,
-    setActiveTab,
   } = useMiniApp();
 
   // --- Neynar user hook ---
@@ -101,16 +99,13 @@ export default function App(
       {/* Header should be full width */}
       <Header neynarUser={neynarUser} />
 
-      {/* Main content and footer should be centered */}
-      <div className="container py-2 pb-20">
+      {/* Main content should be centered */}
+      <div className="container py-2 pb-8">
         {/* Main title */}
         <h1 className="text-2xl font-bold text-center mb-4">Guess 2/3 Game</h1>
 
         {/* Always render HomeTab */}
         <HomeTab />
-
-        {/* Simplified Footer */}
-        <Footer setActiveTab={setActiveTab} />
       </div>
     </div>
   );

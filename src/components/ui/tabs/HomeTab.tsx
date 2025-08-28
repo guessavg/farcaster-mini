@@ -659,15 +659,15 @@ export function HomeTab() {
           </p>
           
           {errorMessage && (
-            <div className="bg-red-100 dark:bg-red-900 p-3 rounded-lg text-sm text-red-700 dark:text-red-300 mt-3 border border-red-300 dark:border-red-600 shadow-sm animate-pulse">
+            <div className="bg-red-900/40 p-4 rounded-lg text-sm text-red-200 mt-4 border border-red-800/40 shadow-md">
               <div className="flex items-center">
-                <svg className="w-5 h-5 mr-2 text-red-600 dark:text-red-400" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                <svg className="w-5 h-5 mr-2 text-red-400" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
                   <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zm-1 9a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd"></path>
                 </svg>
                 <span>{errorMessage}</span>
               </div>
               {errorMessage.includes("RPC") && (
-                <p className="mt-2 text-xs text-gray-300">
+                <p className="mt-2 text-xs text-red-300/80">
                   RPC errors can happen when too many requests are made to the blockchain. Try again in a moment.
                 </p>
               )}
@@ -795,20 +795,6 @@ export function HomeTab() {
               </div>
             </div>
           </div>
-          
-          {!isConnected && (
-            <div className="mt-4 bg-gray-800/80 backdrop-blur-sm border border-amber-700/20 p-4 rounded-lg text-center shadow-lg shadow-amber-900/10">
-              <p className="text-sm font-medium text-amber-400">
-                Connect your wallet to see game status and participate
-              </p>
-              <button 
-                onClick={() => connect({ connector: connectors[0] })} 
-                className="mt-2 bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-white py-2 px-6 rounded-lg text-sm shadow-md shadow-amber-900/30 hover:shadow-lg hover:shadow-amber-700/30 transition-all duration-200"
-              >
-                Connect Wallet
-              </button>
-            </div>
-          )}
         </div>
         
         {/* Last Winner */}

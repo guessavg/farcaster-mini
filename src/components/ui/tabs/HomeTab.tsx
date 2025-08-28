@@ -64,9 +64,14 @@ export function HomeTab() {
     args: address ? [address] : undefined,
   });
 
-  // Get user balance
-  const { data: balance } = useBalance({
+  // Base network constants
+  const BASE_CHAIN_ID = 8453; // Base mainnet
+  const BASE_HEX_CHAIN_ID = `0x${BASE_CHAIN_ID.toString(16)}`; // 0x2105
+
+  // Get user balance specifically on Base network
+  const { data: balance, refetch: refetchBalance } = useBalance({
     address,
+    chainId: BASE_CHAIN_ID, // Explicitly specify Base network
   });
 
   // Use contract write hook from wagmi
@@ -106,6 +111,69 @@ export function HomeTab() {
       }, 2000);
     }
   }, [isSuccess, hash]);
+  
+  // Listen for network changes to keep balance updated
+  useEffect(() => {
+    if (!window.ethereum) return;
+    
+    const handleChainChanged = async (chainId: string) => {
+      console.log('Network changed to chainId:', chainId);
+      
+      // Update network status display
+      const networkStatusEl = document.getElementById('network-status');
+      if (networkStatusEl) {
+        if (chainId === BASE_HEX_CHAIN_ID) {
+          networkStatusEl.textContent = 'Base';
+          networkStatusEl.className = 'text-xs py-0.5 px-2 rounded-full bg-blue-900/50 text-blue-300 border border-blue-800/40';
+          setErrorMessage(null);
+        } else {
+          networkStatusEl.textContent = 'Wrong Network';
+          networkStatusEl.className = 'text-xs py-0.5 px-2 rounded-full bg-red-900/50 text-red-300 border border-red-800/40';
+          setErrorMessage("You're not on Base network. This game only works on Base.");
+        }
+      }
+      
+      // Refresh balance when network changes
+      await refetchBalance();
+    };
+    
+    window.ethereum.on('chainChanged', handleChainChanged);
+    
+    // Initial check
+    window.ethereum.request({ method: 'eth_chainId' })
+      .then(handleChainChanged)
+      .catch(console.error);
+    
+    return () => {
+      window.ethereum.removeListener('chainChanged', handleChainChanged);
+    };
+  }, [refetchBalance, BASE_HEX_CHAIN_ID]);
+  
+  // Check network on component mount and when connection status changes
+  useEffect(() => {
+    const checkNetwork = async () => {
+      if (isConnected && window.ethereum) {
+        try {
+          const chainId = await window.ethereum.request({ method: 'eth_chainId' });
+          
+          if (chainId !== BASE_HEX_CHAIN_ID) {
+            console.log('Not on Base network. Current chain:', chainId);
+            setErrorMessage("You're not on the Base network. Click 'Switch to Base' to play.");
+          } else {
+            console.log('Already on Base network');
+            setErrorMessage(null);
+            
+            // Make sure balance is refreshed when already on Base network
+            await refetchBalance();
+          }
+        } catch (error) {
+          console.error('Failed to check network:', error);
+        }
+      }
+    };
+    
+    checkNetwork();
+  }, [isConnected, refetchBalance, BASE_HEX_CHAIN_ID]);
   
   // Clear error message after a while
   useEffect(() => {
@@ -271,20 +339,45 @@ export function HomeTab() {
     }
     
     try {
+      // 首先检查输入是否为有效数字
+      const gweiValue = parseInt(gweiAmount);
+      if (isNaN(gweiValue) || gweiValue <= 0) {
+        throw new Error(`Invalid Gwei amount: ${gweiAmount}`);
+      }
+      
       // 将Gwei数量转换为Wei (1 Gwei = 10^9 Wei)
-      const weiValue = (BigInt(parseInt(gweiAmount)) * BigInt(1e9)).toString();
+      const weiValue = BigInt(gweiValue) * BigInt(1e9);
       
       // 获取当前账户
       const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
       const account = accounts[0];
       
-      console.log(`直接向合约发送交易: ${gweiAmount} Gwei (${formatEther(BigInt(weiValue))} ETH), 从: ${account}`);
+      // 确保在Base网络上
+      const chainId = await window.ethereum.request({ method: 'eth_chainId' });
+      if (chainId !== BASE_HEX_CHAIN_ID) {
+        throw new Error("Must be on Base network to play. Please switch networks first.");
+      }
+      
+      // 在Base网络上再次检查用户余额
+      const balanceResponse = await window.ethereum.request({
+        method: 'eth_getBalance',
+        params: [account, 'latest']
+      });
+      
+      const accountBalance = BigInt(balanceResponse);
+      console.log(`Base network balance check: ${formatEther(accountBalance)} ETH (${Number(accountBalance) / 1e9} Gwei)`);
+      
+      if (weiValue > accountBalance) {
+        throw new Error(`Insufficient balance on Base network: You have ${formatEther(accountBalance)} ETH (${Math.floor(Number(accountBalance) / 1e9).toLocaleString()} Gwei), but need ${gweiValue.toLocaleString()} Gwei (${formatEther(weiValue)} ETH)`);
+      }
+      
+      console.log(`直接向合约发送交易: ${gweiValue.toLocaleString()} Gwei (${formatEther(weiValue)} ETH), 从: ${account}`);
       
       // 创建交易参数
       const txParams = {
         from: account,
         to: CONTRACT_ADDRESS,
-        value: `0x${BigInt(weiValue).toString(16)}`, // 转换为十六进制
+        value: `0x${weiValue.toString(16)}`, // 转换为十六进制
         data: '0x92d98a65', // play() 函数的签名
       };
       
@@ -321,21 +414,44 @@ export function HomeTab() {
         return;
       }
       
-      // Make sure user is on Base network before placing bet
+          // Make sure user is on Base network before placing bet
       if (window.ethereum) {
-        const networkSwitched = await switchToBaseNetwork();
-        if (!networkSwitched) {
-          setErrorMessage("You must be on the Base network to play this game");
-          return;
+        // Check current network
+        const chainId = await window.ethereum.request({ method: 'eth_chainId' });
+        
+        if (chainId !== BASE_HEX_CHAIN_ID) {
+          console.log('Not on Base network. Attempting to switch...');
+          const networkSwitched = await switchToBaseNetwork();
+          if (!networkSwitched) {
+            setErrorMessage("You must be on the Base network to play this game. Please click the 'Switch to Base Network' button.");
+            return;
+          }
+          
+          // Give a moment for the network switch to complete and for balance to update
+          await new Promise(resolve => setTimeout(resolve, 1500));
+          
+          // Force refresh balance after network switch
+          await refetchBalance();
         }
       }
       
-      // Convert Gwei to ETH for balance check
-      const amountWei = BigInt(parseInt(amountGwei)) * BigInt(1e9); // Convert Gwei to Wei
+      // Convert Gwei to Wei for both balance check and transaction
+      const gweiAmount = parseInt(amountGwei);
+      const amountWei = BigInt(gweiAmount) * BigInt(1e9); // Convert Gwei to Wei
+      
+      console.log(`Balance check: Amount: ${gweiAmount} Gwei (${formatEther(amountWei)} ETH), User balance: ${formatEther(balance?.value || 0n)} ETH`);
       
       // Check if user has sufficient balance
       if (balance && amountWei > balance.value) {
-        setErrorMessage(`Insufficient balance. You have ${formatEther(balance.value)} ETH, but trying to bet ${formatEther(amountWei)} ETH.`);
+        // Calculate how much more ETH is needed
+        const shortageWei = amountWei - balance.value;
+        const shortageGwei = Number(shortageWei) / 1e9;
+        
+        setErrorMessage(
+          `Insufficient balance. You have ${formatEther(balance.value)} ETH (${Math.floor(Number(formatEther(balance.value)) * 1e9).toLocaleString()} Gwei), ` +
+          `but trying to bet ${gweiAmount.toLocaleString()} Gwei (${formatEther(amountWei)} ETH). ` +
+          `You need ${shortageGwei.toLocaleString()} more Gwei.`
+        );
         return;
       }
       
@@ -344,10 +460,7 @@ export function HomeTab() {
       
       // Try wagmi contract write first
       try {
-        console.log("Attempting to place bet with contract write:", amountGwei, "Gwei");
-        
-        // Convert Gwei to Wei for the transaction
-        const amountWei = BigInt(parseInt(amountGwei)) * BigInt(1e9); // 1 Gwei = 10^9 Wei
+        console.log(`Placing bet with contract write: ${gweiAmount.toLocaleString()} Gwei (${formatEther(amountWei)} ETH)`);
         
         writeContract({
           address: CONTRACT_ADDRESS as `0x${string}`,
@@ -366,8 +479,8 @@ export function HomeTab() {
         
         // Fallback to direct transaction method
         try {
-          console.log("Falling back to direct ethereum transaction");
-          await sendTransactionDirectly(amountGwei);
+          console.log(`Falling back to direct ethereum transaction: ${gweiAmount} Gwei`);
+          await sendTransactionDirectly(gweiAmount.toString());
         } catch (directTxError: any) {
           console.error("Direct transaction failed:", directTxError);
           setErrorMessage("Contract interaction not available. Please refresh and try again.");
@@ -405,15 +518,32 @@ export function HomeTab() {
       return false;
     }
     
-    const BASE_CHAIN_ID = 8453; // Base mainnet
-    
     try {
-      // Try to switch to Base network
+      // First check if already on Base network
+      const chainId = await window.ethereum.request({ method: 'eth_chainId' });
+      console.log('Current chain ID:', chainId);
+      
+      if (chainId === BASE_HEX_CHAIN_ID) {
+        console.log('Already on Base network');
+        // Even if already on Base network, refresh the balance to be sure
+        await refetchBalance();
+        return true;
+      }
+      
+      // Not on Base network, try to switch
+      console.log('Switching to Base network...');
       await window.ethereum.request({
         method: 'wallet_switchEthereumChain',
-        params: [{ chainId: `0x${BASE_CHAIN_ID.toString(16)}` }], // Convert to hex
+        params: [{ chainId: BASE_HEX_CHAIN_ID }],
       });
       console.log('Successfully switched to Base network');
+      
+      // After switching networks, refresh the balance
+      setTimeout(async () => {
+        console.log('Refreshing balance after network switch...');
+        await refetchBalance();
+      }, 1000);
+      
       return true;
     } catch (switchError: any) {
       // This error code indicates that the chain has not been added to MetaMask
@@ -518,10 +648,10 @@ export function HomeTab() {
           <h3 className="font-semibold mb-4 text-purple-200">Step 1: Connect Your Wallet</h3>
           <Button
             onClick={handleConnect}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 rounded"
+            className="w-full bg-gradient-to-r from-purple-800 to-purple-600 hover:from-purple-700 hover:to-purple-500 text-white font-medium py-3 px-4 rounded-lg shadow-lg transition-all duration-200 hover:shadow-purple-700/30"
             disabled={isPending}
           >
-            {isPending ? "Connecting..." : "Connect Wallet"}
+            <span className="glow-sm">{isPending ? "Connecting..." : "Connect Wallet"}</span>
           </Button>
           <p className="mt-2 text-xs text-purple-300">Connect your wallet to play</p>
           <p className="mt-1 text-xs text-purple-300">
@@ -546,7 +676,18 @@ export function HomeTab() {
         </div>
       ) : (
         <>
-          {hasPlayedData ? (
+          {errorMessage && errorMessage.includes("not on the Base network") ? (
+            <div className="bg-blue-900/30 rounded-lg p-6 shadow-lg border border-blue-700/30 shadow-blue-900/10 text-center mb-6">
+              <h3 className="font-semibold mb-3 text-blue-200">Wrong Network Detected</h3>
+              <p className="text-blue-300 mb-4">This game runs exclusively on the Base network.</p>
+              <Button
+                onClick={() => switchToBaseNetwork()}
+                className="w-full bg-gradient-to-r from-blue-700 to-blue-500 hover:from-blue-600 hover:to-blue-400 text-white font-medium py-3 px-4 rounded-lg shadow-lg transition-all duration-200 hover:shadow-blue-700/30"
+              >
+                <span className="glow-sm">Switch to Base Network</span>
+              </Button>
+            </div>
+          ) : hasPlayedData ? (
             <div className="bg-green-900/50 p-4 rounded-lg mb-6 text-center border border-green-700/30 shadow-lg shadow-green-900/10">
               <p className="text-green-300">You&apos;ve already joined this round!</p>
               <p className="text-sm mt-2 text-green-200">Wait for the game to end to see results.</p>
@@ -594,8 +735,20 @@ export function HomeTab() {
                   Connected as: <span className="text-blue-300">{address?.slice(0, 6)}...{address?.slice(-4)}</span>
                 </p>
                 
-                {balance && (
+                <div className="flex items-center justify-between mt-1">
                   <p className="text-xs text-purple-300">
+                    Network: <span id="network-status" className="text-xs py-0.5 px-2 rounded-full bg-blue-900/50 text-blue-300 border border-blue-800/40">Base</span>
+                  </p>
+                  <button 
+                    onClick={() => refetchBalance()} 
+                    className="text-xs text-purple-400 hover:text-purple-300 underline"
+                  >
+                    Refresh Balance
+                  </button>
+                </div>
+                
+                {balance && (
+                  <p className="text-xs text-purple-300 mt-1">
                     Available balance: <span className="text-green-300 font-medium">{formatEther(balance?.value).substring(0, 8)} ETH</span> 
                     <span className="text-xs text-purple-300/70"> ≈ {Math.floor(Number(formatEther(balance?.value)) * 1e9).toLocaleString()} Gwei</span>
                   </p>

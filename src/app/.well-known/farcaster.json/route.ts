@@ -8,7 +8,7 @@ export async function GET() {
       payload: "eyJkb21haW4iOiJndWVzczIzLnZlcmNlbC5hcHAifQ",
       signature: "FG6BxeQDYOHsXmcE1SJtgpQIdo0vBY+G6qNIOWqWhNpUoI/7pFm2QGO8ppxrJFiuIMsoikHgR956yas/4ptTUBw="
     },
-    miniapp: {
+    frame: {
       version: '1',
       name: 'Guess 2/3',
       iconUrl: 'https://guess23.vercel.app/icon.png',

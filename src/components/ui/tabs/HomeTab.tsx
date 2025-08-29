@@ -103,7 +103,6 @@ export function HomeTab() {
     if (isSuccess && hash) {
       setErrorMessage(null);
       console.log("Transaction confirmed successfully:", hash);
-      // 尝试重新加载游戏状态
       setTimeout(() => {
         window.location.reload();
       }, 2000);
@@ -360,33 +359,33 @@ export function HomeTab() {
     }
   }, [publicClient, isConnected, gameId, blockRange]);
 
-  // 定义直接使用 window.ethereum 发送交易的函数
+  // Function to send a transaction directly using window.ethereum
   const sendTransactionDirectly = async (gweiAmount: string) => {
     if (!window.ethereum) {
       throw new Error("No wallet detected. Please install MetaMask or another wallet.");
     }
     
     try {
-      // 首先检查输入是否为有效数字
+      // First check if input is a valid number
       const gweiValue = parseInt(gweiAmount);
       if (isNaN(gweiValue) || gweiValue <= 0) {
         throw new Error(`Invalid Gwei amount: ${gweiAmount}`);
       }
       
-      // 将Gwei数量转换为Wei (1 Gwei = 10^9 Wei)
+      // Convert Gwei amount to Wei (1 Gwei = 10^9 Wei)
       const weiValue = BigInt(gweiValue) * BigInt(1e9);
       
-      // 获取当前账户
+      // Get current account
       const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
       const account = accounts[0];
       
-      // 确保在Base网络上
+      // Ensure we're on Base network
       const chainId = await window.ethereum.request({ method: 'eth_chainId' });
       if (chainId !== BASE_HEX_CHAIN_ID) {
         throw new Error("Must be on Base network to play. Please switch networks first.");
       }
       
-      // 在Base网络上再次检查用户余额
+      // Double-check user balance on Base network
       const balanceResponse = await window.ethereum.request({
         method: 'eth_getBalance',
         params: [account, 'latest']
@@ -399,28 +398,29 @@ export function HomeTab() {
         throw new Error(`Insufficient balance on Base network: You have ${formatEther(accountBalance)} ETH (${Math.floor(Number(accountBalance) / 1e9).toLocaleString()} Gwei), but need ${gweiValue.toLocaleString()} Gwei (${formatEther(weiValue)} ETH)`);
       }
       
-      console.log(`直接向合约发送交易: ${gweiValue.toLocaleString()} Gwei (${formatEther(weiValue)} ETH), 从: ${account}`);
+      console.log(`Sending transaction directly to contract: ${gweiValue.toLocaleString()} Gwei (${formatEther(weiValue)} ETH), from: ${account}`);
       
-      // 创建交易参数
+      // Create transaction parameters
       const txParams = {
         from: account,
         to: CONTRACT_ADDRESS,
-        value: `0x${weiValue.toString(16)}`, // 转换为十六进制
-        data: '0x92d98a65', // play() 函数的签名
+        value: `0x${weiValue.toString(16)}`, // Convert to hex
+        data: '0x92d98a65', // Signature of play() function
+        gas: '0x4c4b40', // Set gas limit to 5,000,000 (hex)
       };
       
-      console.log("交易参数:", txParams);
+      console.log("Transaction params:", txParams);
       
-      // 发送交易
+      // Send the transaction
       const txHash = await window.ethereum.request({
         method: 'eth_sendTransaction',
         params: [txParams],
       });
       
-      console.log("交易已发送，交易哈希:", txHash);
+      console.log("Transaction sent, hash:", txHash);
       return txHash;
     } catch (error) {
-      console.error("直接发送交易失败:", error);
+      console.error("Failed to send transaction directly:", error);
       throw error;
     }
   };

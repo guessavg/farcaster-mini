@@ -1,24 +1,22 @@
-// app/.well-known/farcaster.json/route.ts
 import { NextResponse } from 'next/server'
 
 export async function GET() {
   return NextResponse.json({
+    frame: {
+      name: "Guess 2/3 Game",
+      version: "1",
+      iconUrl: "https://guess23.vercel.app/icon.png",
+      homeUrl: "https://guess23.vercel.app/",
+      splashImageUrl: "https://guess23.vercel.app/splash.png",
+      splashBackgroundColor: "#0b0b10",
+      primaryCategory: "games",
+      subtitle: "Guess 2/3 of the Average Game",
+      description: "Bet Gwei to enter the mathematical mind game! The player closest to 2/3 of the average bet wins the entire pot."
+    },
     accountAssociation: {
       header: "eyJmaWQiOjExNjU5OTksInR5cGUiOiJhdXRoIiwia2V5IjoiMHg5REZlOEFiZjFDYjc2RjBBQjNEYjBjM2I1MDgzRTdERjhkNTdBRDZhIn0",
       payload: "eyJkb21haW4iOiJndWVzczIzLnZlcmNlbC5hcHAifQ",
       signature: "FG6BxeQDYOHsXmcE1SJtgpQIdo0vBY+G6qNIOWqWhNpUoI/7pFm2QGO8ppxrJFiuIMsoikHgR956yas/4ptTUBw="
-    },
-    frame: {
-      version: '1',
-      name: 'Guess 2/3',
-      iconUrl: 'https://guess23.vercel.app/icon.png',
-      splashImageUrl: 'https://guess23.vercel.app/splash.png',
-      splashBackgroundColor: '#0b0b10',
-      homeUrl: 'https://guess23.vercel.app/',
-      requiredChains: ['eip155:8453'],
-      requiredCapabilities: ['wallet.getEthereumProvider'],
-      primaryCategory: 'games',
-      tags: ['game', 'base', 'eth']
     }
   })
 }

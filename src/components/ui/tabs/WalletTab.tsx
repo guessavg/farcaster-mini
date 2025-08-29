@@ -14,6 +14,8 @@ import { SendSolana } from "../wallet/SendSolana";
 import { USE_WALLET, APP_NAME } from "../../../lib/constants";
 import { useMiniApp } from "@neynar/react";
 import { useHasSolanaProvider } from "../../../components/providers/SafeFarcasterSolanaProvider";
+import { isMobile } from "../../../lib/devices";
+import { tryWalletConnectOnMobile, hasEthereumProvider } from "../../../lib/mobileDappHelpers";
 
 /**
  * WalletTab component manages wallet-related UI for both EVM and Solana chains.
@@ -81,6 +83,55 @@ function ConnectionControls({
   connectors,
   disconnect,
 }: ConnectionControlsProps) {
+  // State to track if a mobile wallet connection attempt is ongoing
+  const [isMobileConnecting, setIsMobileConnecting] = useState(false);
+  
+  // Check for mobile device
+  const isMobileDevice = isMobile();
+
+  useEffect(() => {
+    // Check for provider presence every second for up to 10 seconds after a mobile connection attempt
+    let checkInterval: NodeJS.Timeout | null = null;
+    let attempts = 0;
+    
+    if (isMobileConnecting) {
+      checkInterval = setInterval(() => {
+        attempts += 1;
+        
+        // If we have a provider now, try to connect
+        if (hasEthereumProvider()) {
+          // Try to connect with the injected connector
+          connect({ connector: connectors.find(c => c.name === 'Injected') || connectors[2] });
+          setIsMobileConnecting(false);
+          if (checkInterval) clearInterval(checkInterval);
+        }
+        
+        // Give up after 10 attempts (10 seconds)
+        if (attempts >= 10) {
+          setIsMobileConnecting(false);
+          if (checkInterval) clearInterval(checkInterval);
+        }
+      }, 1000);
+    }
+    
+    return () => {
+      if (checkInterval) clearInterval(checkInterval);
+    };
+  }, [isMobileConnecting, connect, connectors]);
+  
+  // Handler for mobile wallet connection
+  const handleMobileWalletConnect = useCallback(async () => {
+    setIsMobileConnecting(true);
+    
+    // Try to connect to a mobile wallet
+    const connected = await tryWalletConnectOnMobile();
+    
+    // If immediate connection was successful, no need to keep polling
+    if (connected) {
+      setIsMobileConnecting(false);
+    }
+  }, []);
+  
   if (isConnected) {
     return (
       <Button onClick={() => disconnect()} className="w-full">
@@ -107,14 +158,31 @@ function ConnectionControls({
       </div>
     );
   }
+  
   return (
     <div className="space-y-3 w-full">
       <Button onClick={() => connect({ connector: connectors[1] })} className="w-full">
         Connect Coinbase Wallet
       </Button>
-      <Button onClick={() => connect({ connector: connectors[2] })} className="w-full">
-        Connect MetaMask
-      </Button>
+      {isMobileDevice ? (
+        <Button 
+          onClick={handleMobileWalletConnect} 
+          className="w-full" 
+          isLoading={isMobileConnecting}
+          disabled={isMobileConnecting}
+        >
+          {isMobileConnecting ? 'Opening MetaMask...' : 'Connect MetaMask (Mobile)'}
+        </Button>
+      ) : (
+        <Button onClick={() => connect({ connector: connectors[2] })} className="w-full">
+          Connect MetaMask
+        </Button>
+      )}
+      {isMobileConnecting && (
+        <div className="text-xs text-center mt-2 text-gray-500">
+          If MetaMask doesn&apos;t open automatically, please open it manually and return to this app.
+        </div>
+      )}
     </div>
   );
 }
@@ -179,7 +247,12 @@ export function WalletTab() {
        window.ethereum?.isFarcaster ||
        context?.client);
     
-    if (context?.user?.fid && !isConnected && connectors.length > 0 && isInFarcasterClient) {
+    // Check if we're in a mobile environment and ensure provider is available
+    const isMobileEnvironment = isMobile();
+    if (isMobileEnvironment && !hasEthereumProvider()) {
+      console.log("Mobile environment detected without provider, waiting for provider to become available...");
+      // No automatic connection attempt for mobile yet - we'll let the user initiate it
+    } else if (context?.user?.fid && !isConnected && connectors.length > 0 && isInFarcasterClient) {
       console.log("Attempting auto-connection with Farcaster context...");
       console.log("- User FID:", context.user.fid);
       console.log("- Available connectors:", connectors.map((c, i) => `${i}: ${c.name}`));
@@ -198,6 +271,8 @@ export function WalletTab() {
       console.log("- Is connected:", isConnected);
       console.log("- Has connectors:", connectors.length > 0);
       console.log("- In Farcaster client:", isInFarcasterClient);
+      console.log("- Is mobile:", isMobileEnvironment);
+      console.log("- Has Ethereum provider:", hasEthereumProvider());
     }
   }, [context?.user?.fid, isConnected, connectors, connect, context?.client]);
 

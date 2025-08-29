@@ -3,6 +3,7 @@ import { createConfig, http } from 'wagmi'
 import { base, mainnet } from 'wagmi/chains'
 import { farcasterMiniApp as miniAppConnector } from '@farcaster/miniapp-wagmi-connector'
 import { coinbaseWallet, injected, walletConnect } from 'wagmi/connectors'
+import { isMobile } from './devices'
 
 // Using Base mainnet
 const CHAIN = base
@@ -37,7 +38,9 @@ export const config = createConfig({
     // Farcaster Mini App connector should be first for best experience in Warpcast
     miniAppConnector(),
     // Add other common wallet connectors for broader compatibility
-    injected(),
+    injected({
+      shimDisconnect: true,
+    }),
     coinbaseWallet({ 
       appName: 'Guess 2/3 Game',
     }),

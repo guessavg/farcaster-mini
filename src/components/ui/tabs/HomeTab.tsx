@@ -183,6 +183,36 @@ export function HomeTab() {
       return () => clearTimeout(timer);
     }
   }, [errorMessage]);
+  
+  // Check if returning from a mobile wallet deep link
+  useEffect(() => {
+    const checkIfReturningFromWallet = async () => {
+      // Skip if already connected or not on mobile
+      if (isConnected) return;
+      
+      const { isMobile } = await import('~/lib/devices');
+      const { hasEthereumProvider } = await import('~/lib/mobileDappHelpers');
+      
+      // Check if returning from wallet deep link
+      const isReturningFromWallet = window.sessionStorage.getItem('walletDeepLinkAttempted') === 'true';
+      
+      if (isReturningFromWallet && isMobile() && hasEthereumProvider()) {
+        console.log("Detected return from wallet app with provider available");
+        
+        // Clear the flag
+        window.sessionStorage.removeItem('walletDeepLinkAttempted');
+        
+        // Find available connector
+        const connector = connectors.find(c => c.ready);
+        if (connector) {
+          console.log("Automatically connecting with available connector after deep link return");
+          connect({ connector });
+        }
+      }
+    };
+    
+    checkIfReturningFromWallet();
+  }, [isConnected, connect, connectors]);
 
   // Public client for fetching events
   const publicClient = usePublicClient();
@@ -600,13 +630,50 @@ export function HomeTab() {
         }
       }
       
+      // Import mobile detection and helpers
+      const { isMobile } = await import('~/lib/devices');
+      const { hasEthereumProvider } = await import('~/lib/mobileDappHelpers');
+      
+      // Check if we're on mobile
+      const isOnMobile = isMobile();
+      
+      // Track if we're returning from a deep link attempt
+      const isReturningFromDeepLink = window.sessionStorage.getItem('walletDeepLinkAttempted') === 'true';
+      
       // Find an available connector
       const connector = connectors.find(c => c.ready);
       
       if (connector) {
+        // We have a ready connector, use it
         console.log("Connecting wallet with connector:", connector.name);
         connect({ connector });
+      } else if (isOnMobile) {
+        // On mobile with no ready connectors
+        console.log("On mobile - checking connection options");
+
+        // Check if we're returning from a deep link and have a provider now
+        if (isReturningFromDeepLink && hasEthereumProvider()) {
+          // Try to use the now-available provider
+          console.log("Returned from deep link with provider - attempting connection");
+          
+          // Force page refresh to ensure provider is properly initialized
+          window.location.reload();
+          return;
+        }
+        
+        // If there's no ethereum provider on mobile, suggest using direct wallet links instead
+        if (!hasEthereumProvider()) {
+          console.log("No provider on mobile - suggesting direct wallet links");
+          setErrorMessage("No wallet detected. Please use one of the wallet options below.");
+          
+          // Set flag that we attempted deep linking (for when user returns to app)
+          window.sessionStorage.setItem('walletDeepLinkAttempted', 'true');
+        } else {
+          // There is a provider but it's not ready - could be initialization issue
+          setErrorMessage("Wallet detected but not ready. Please open your wallet app and make sure it's connected to this site.");
+        }
       } else {
+        // No ready connectors and not on mobile
         setErrorMessage("No wallet connectors available. Please install a Web3 wallet extension like MetaMask or use WalletConnect.");
       }
     } catch (error) {
@@ -644,18 +711,113 @@ export function HomeTab() {
       {!isConnected ? (
         <div className="bg-gray-900/80 rounded-lg p-6 shadow-lg border border-purple-700/20 shadow-purple-900/10">
           <h3 className="font-semibold mb-4 text-purple-200">Step 1: Connect Your Wallet</h3>
-          <Button
-            onClick={handleConnect}
-            className="w-full bg-gradient-to-r from-purple-800 to-purple-600 hover:from-purple-700 hover:to-purple-500 text-white font-medium py-3 px-4 rounded-lg shadow-lg transition-all duration-200 hover:shadow-purple-700/30"
-            disabled={isPending}
-          >
-            <span className="glow-sm">{isPending ? "Connecting..." : "Connect Wallet"}</span>
-          </Button>
-          <p className="mt-2 text-xs text-purple-300">Connect your wallet to play</p>
-          <p className="mt-1 text-xs text-purple-300">
-            Make sure you have a wallet extension like MetaMask installed or are using a dApp browser
-          </p>
+          <div className="space-y-3">
+            {/* Main connect button */}
+            <Button
+              onClick={handleConnect}
+              className="w-full bg-gradient-to-r from-purple-800 to-purple-600 hover:from-purple-700 hover:to-purple-500 text-white font-medium py-3 px-4 rounded-lg shadow-lg transition-all duration-200 hover:shadow-purple-700/30"
+              disabled={isPending}
+            >
+              <span className="glow-sm">{isPending ? "Connecting..." : "Connect Wallet"}</span>
+            </Button>
+
+            {/* Mobile wallet options */}
+            <div className="flex justify-center items-center mt-3 mb-2">
+              <div className="h-px bg-purple-700/30 grow"></div>
+              <span className="text-xs text-purple-400 mx-3">OR USE MOBILE WALLETS</span>
+              <div className="h-px bg-purple-700/30 grow"></div>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-3">
+              {/* MetaMask Mobile */}
+              <button
+                onClick={async () => {
+                  const { openWalletAppWithDappUrl } = await import('~/lib/mobileDappHelpers');
+                  openWalletAppWithDappUrl('metamask');
+                }}
+                className="flex flex-col items-center justify-center bg-gray-800 hover:bg-gray-700 transition-colors py-3 px-2 rounded-lg border border-purple-700/20"
+              >
+                <svg className="w-6 h-6 mb-1" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M20.8422 2L12.3636 8.3621L13.8182 4.60526L20.8422 2Z" fill="#E17726" stroke="#E17726" strokeWidth="0.25" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M3.15778 2L11.5539 8.42337L10.1818 4.60526L3.15778 2Z" fill="#E27625" stroke="#E27625" strokeWidth="0.25" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M18.0394 16.8058L15.8961 20.4461L20.3207 21.8221L21.5584 16.8802L18.0394 16.8058Z" fill="#E27625" stroke="#E27625" strokeWidth="0.25" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M2.45508 16.8802L3.67938 21.8221L8.10398 20.4461L5.96066 16.8058L2.45508 16.8802Z" fill="#E27625" stroke="#E27625" strokeWidth="0.25" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M7.83681 10.6038L6.60571 12.7478L10.977 12.9708L10.8182 8.18933L7.83681 10.6038Z" fill="#E27625" stroke="#E27625" strokeWidth="0.25" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+                <span className="text-xs text-purple-100">MetaMask</span>
+              </button>
+              
+              {/* Trust Wallet */}
+              <button
+                onClick={async () => {
+                  const { openWalletAppWithDappUrl } = await import('~/lib/mobileDappHelpers');
+                  openWalletAppWithDappUrl('trustwallet');
+                }}
+                className="flex flex-col items-center justify-center bg-gray-800 hover:bg-gray-700 transition-colors py-3 px-2 rounded-lg border border-purple-700/20"
+              >
+                <svg className="w-6 h-6 mb-1" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" fill="#3375BB"/>
+                  <path fillRule="evenodd" clipRule="evenodd" d="M12.0001 6.60001C14.3798 8.24198 15.6588 8.12207 17.0001 8.60001C16.9191 14.5332 16.2397 12.5325 12.0001 16.4C7.76038 12.5325 7.08101 14.5332 7.00006 8.60001C8.34138 8.12207 9.62026 8.24198 12.0001 6.60001Z" fill="white"/>
+                </svg>
+                <span className="text-xs text-purple-100">Trust Wallet</span>
+              </button>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              {/* Coinbase Wallet */}
+              <button
+                onClick={async () => {
+                  const { openWalletAppWithDappUrl } = await import('~/lib/mobileDappHelpers');
+                  openWalletAppWithDappUrl('coinbase');
+                }}
+                className="flex flex-col items-center justify-center bg-gray-800 hover:bg-gray-700 transition-colors py-3 px-2 rounded-lg border border-purple-700/20"
+              >
+                <svg className="w-6 h-6 mb-1" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <rect width="24" height="24" rx="12" fill="#0052FF"/>
+                  <path fillRule="evenodd" clipRule="evenodd" d="M12 19C15.866 19 19 15.866 19 12C19 8.13401 15.866 5 12 5C8.13401 5 5 8.13401 5 12C5 15.866 8.13401 19 12 19ZM14.25 9.75C14.25 9.33579 13.9142 9 13.5 9H10.5C10.0858 9 9.75 9.33579 9.75 9.75V14.25C9.75 14.6642 10.0858 15 10.5 15H13.5C13.9142 15 14.25 14.6642 14.25 14.25V9.75Z" fill="white"/>
+                </svg>
+                <span className="text-xs text-purple-100">Coinbase</span>
+              </button>
+              
+              {/* Rainbow Wallet */}
+              <button
+                onClick={async () => {
+                  const { openWalletAppWithDappUrl } = await import('~/lib/mobileDappHelpers');
+                  openWalletAppWithDappUrl('rainbow');
+                }}
+                className="flex flex-col items-center justify-center bg-gray-800 hover:bg-gray-700 transition-colors py-3 px-2 rounded-lg border border-purple-700/20"
+              >
+                <svg className="w-6 h-6 mb-1" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M0 24C0 10.7452 10.7452 0 24 0H96C109.255 0 120 10.7452 120 24V96C120 109.255 109.255 120 96 120H24C10.7452 120 0 109.255 0 96V24Z" fill="url(#paint0_linear)"/>
+                  <path d="M20 38H100V82H20V38Z" fill="url(#paint1_linear)"/>
+                  <defs>
+                    <linearGradient id="paint0_linear" x1="0" y1="0" x2="120" y2="120" gradientUnits="userSpaceOnUse">
+                      <stop stopColor="#FF0000"/>
+                      <stop offset="0.16" stopColor="#FF7F00"/>
+                      <stop offset="0.33" stopColor="#FFFF00"/>
+                      <stop offset="0.5" stopColor="#00FF00"/>
+                      <stop offset="0.67" stopColor="#0000FF"/>
+                      <stop offset="0.83" stopColor="#4B0082"/>
+                      <stop offset="1" stopColor="#8B00FF"/>
+                    </linearGradient>
+                    <linearGradient id="paint1_linear" x1="20" y1="38" x2="100" y2="82" gradientUnits="userSpaceOnUse">
+                      <stop stopColor="white"/>
+                      <stop offset="1" stopColor="white" stopOpacity="0.9"/>
+                    </linearGradient>
+                  </defs>
+                </svg>
+                <span className="text-xs text-purple-100">Rainbow</span>
+              </button>
+            </div>
+          </div>
           
+          <div className="mt-4">
+            <p className="mt-2 text-xs text-purple-300">Connect your wallet to play</p>
+            <p className="mt-1 text-xs text-purple-300">
+              On mobile, use a wallet app with a built-in browser or tap one of the wallet options above
+            </p>
+          </div>
+
           {errorMessage && (
             <div className="bg-red-900/40 p-4 rounded-lg text-sm text-red-200 mt-4 border border-red-800/40 shadow-md">
               <div className="flex items-center">

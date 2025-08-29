@@ -5,17 +5,22 @@ export async function GET() {
   return NextResponse.json({
     miniapp: {
       version: '1',
-      name: APP_NAME,
-      iconUrl: APP_ICON_URL,
-      splashImageUrl: APP_SPLASH_URL,
-      splashBackgroundColor: APP_SPLASH_BACKGROUND_COLOR,
-      homeUrl: APP_URL,
-      requiredChains: ['eip155:8453'], // Base
+      name: 'Guess 2/3',
+      iconUrl: "https://guessavg.github.io/icon/icon.png",
+      splashImageUrl: "https://guessavg.github.io/icon/icon.png",
+      splashBackgroundColor: '#0b0b10',
+      homeUrl: 'https://guess23.vercel.app/',
+      requiredChains: ['eip155:8453'],
       requiredCapabilities: [
         'wallet.getEthereumProvider'
       ],
-      primaryCategory: APP_PRIMARY_CATEGORY,
-      tags: APP_TAGS
+      primaryCategory: 'games',
+      tags: ['game', 'base', 'eth']
     },
+    accountAssociation: {
+      header: 'eip191:…',
+      payload: '…',
+      signature: '0x…'
+    }
   })
 }

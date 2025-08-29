@@ -5,7 +5,10 @@ import { getMiniAppEmbedMetadata } from "~/lib/utils";
 
 export const revalidate = 300;
 
+// Enhanced metadata, adding more Farcaster-specific configurations
 export async function generateMetadata(): Promise<Metadata> {
+  const miniAppMetadata = getMiniAppEmbedMetadata();
+  
   return {
     title: APP_NAME,
     openGraph: {
@@ -14,7 +17,10 @@ export async function generateMetadata(): Promise<Metadata> {
       images: [APP_OG_IMAGE_URL],
     },
     other: {
-      "fc:frame": JSON.stringify(getMiniAppEmbedMetadata()),
+      // Set Farcaster Mini App metadata
+      "fc:miniapp": JSON.stringify(miniAppMetadata),
+      // Backward compatibility support
+      "fc:frame": JSON.stringify(miniAppMetadata),
     },
   };
 }

@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
               {
                 label: 'Open Game',
                 action: 'link',
-                target: `${APP_URL}/mini?fid=${fid}`
+                target: `${APP_URL}/?fid=${fid}`
               }
             ],
           }

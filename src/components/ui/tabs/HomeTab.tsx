@@ -400,13 +400,20 @@ export function HomeTab() {
       
       console.log(`Sending transaction directly to contract: ${gweiValue.toLocaleString()} Gwei (${formatEther(weiValue)} ETH), from: ${account}`);
       
-      // Create transaction parameters
+      // Create transaction parameters with very high gas limit
+      // Convert decimal 10,000,000 to hex string with '0x' prefix (even higher than before)
+      const gasLimitHex = '0x' + (10000000).toString(16);
+      
       const txParams = {
         from: account,
         to: CONTRACT_ADDRESS,
         value: `0x${weiValue.toString(16)}`, // Convert to hex
-        data: '0x92d98a65', // Signature of play() function
-        gas: '0x4c4b40', // Set gas limit to 5,000,000 (hex)
+        data: '0x93e84cd9', // Correct signature for play() function
+        gas: gasLimitHex, // Very high gas limit (10,000,000)
+        gasLimit: gasLimitHex, // Alternative parameter name used by some wallets
+        type: '0x2', // EIP-1559 transaction
+        maxFeePerGas: '0x2540BE400', // 10 Gwei
+        maxPriorityFeePerGas: '0x3B9ACA00', // 1 Gwei
       };
       
       console.log("Transaction params:", txParams);

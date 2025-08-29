@@ -5,8 +5,8 @@ export async function GET() {
   return NextResponse.json({
     accountAssociation: {
       header: "eyJmaWQiOjExNjU5OTksInR5cGUiOiJhdXRoIiwia2V5IjoiMHg5REZlOEFiZjFDYjc2RjBBQjNEYjBjM2I1MDgzRTdERjhkNTdBRDZhIn0",
-      payload: "eyJkb21haW4iOiIifQ",
-      signature: "cV2PxtZTKmW0HjHPBaJBBXXbGZKy/eSwVltBHm68ozwnb2DhKzUArtvnqwYbzz1Eu0U3fbCo/r6EWL02XY7XXhs="
+      payload: "eyJkb21haW4iOiJndWVzczIzLnZlcmNlbC5hcHAifQ",
+      signature: "FG6BxeQDYOHsXmcE1SJtgpQIdo0vBY+G6qNIOWqWhNpUoI/7pFm2QGO8ppxrJFiuIMsoikHgR956yas/4ptTUBw="
     },
     miniapp: {
       version: '1',
